@@ -7,7 +7,7 @@ interface UseRenditionOptions {
 	containerRef: RefObject<HTMLDivElement | null>;
 	settings: ReaderSettings;
 	initialCfi: string | null;
-	onRelocated: (cfi: string, index: number) => void;
+	onRelocated: (cfi: string, index: number, skipTitleUpdate?: boolean) => void;
 }
 
 interface UseRenditionResult {
@@ -31,7 +31,6 @@ export function useRendition({
 	onRelocated,
 }: UseRenditionOptions): UseRenditionResult {
 	const renditionRef = useRef<Rendition | null>(null);
-	const [, forceUpdate] = useState(0);
 	const [isEmpty, setIsEmpty] = useState(false);
 	const onRelocatedRef = useRef(onRelocated);
 
@@ -73,8 +72,9 @@ export function useRendition({
 						// more spine items ahead — skip this empty one
 						rendition.next();
 					} else {
-						// last spine item and it's empty — show overlay
+						// last spine item and it's empty — show overlay and report 100% progress
 						setIsEmpty(true);
+						onRelocatedRef.current(loc.start.cfi, loc.start.index, true);
 					}
 					return;
 				}
@@ -95,8 +95,6 @@ export function useRendition({
 				await rendition.display();
 			}
 		})();
-
-		forceUpdate((n) => n + 1);
 
 		return () => {
 			rendition.destroy();

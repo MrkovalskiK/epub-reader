@@ -14,11 +14,12 @@ interface EpubViewerProps {
   book: Book;
   savedCfi: string | null;
   settings: ReaderSettings;
-  onRelocated: (cfi: string, index: number) => void;
+  chapterTitle?: string;
+  onRelocated: (cfi: string, index: number, skipTitleUpdate?: boolean) => void;
 }
 
 export const EpubViewer = forwardRef<EpubViewerHandle, EpubViewerProps>(
-  ({ book, savedCfi, settings, onRelocated }, ref) => {
+  ({ book, savedCfi, settings, chapterTitle, onRelocated }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const { next, prev, displayHref, isEmpty } = useRendition({
@@ -53,9 +54,12 @@ export const EpubViewer = forwardRef<EpubViewerHandle, EpubViewerProps>(
         />
         {isEmpty && (
           <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 pointer-events-none">
-            <p className="text-gray-400 text-sm text-center px-8">
-              Эта глава недоступна в данном издании
-            </p>
+            <div className="text-center px-8">
+              {chapterTitle && (
+                <p className="text-gray-600 dark:text-gray-300 text-base font-medium mb-2">{chapterTitle}</p>
+              )}
+              <p className="text-gray-400 text-sm">Эта глава недоступна в данном издании</p>
+            </div>
           </div>
         )}
       </div>

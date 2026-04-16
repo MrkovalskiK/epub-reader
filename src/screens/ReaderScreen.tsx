@@ -15,6 +15,7 @@ export function ReaderScreen() {
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(true);
+  const [isViewerReady, setIsViewerReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chapterTitle, setChapterTitle] = useState('');
@@ -24,10 +25,12 @@ export function ReaderScreen() {
 
   const { book: epubBook, toc, status } = useEpub(buffer);
 
-  // Load file on mount
+  // Load file when the opened book path changes (not on every store update)
   useEffect(() => {
-    if (!book) return;
+    if (!book?.path) return;
     setIsLoadingFile(true);
+    setIsViewerReady(false);
+    setFileError(null);
     readEpubFile(book.path)
       .then((buf) => {
         if (buf.byteLength > 50 * 1024 * 1024) {
@@ -39,7 +42,8 @@ export function ReaderScreen() {
         setFileError(e instanceof Error ? e.message : 'Файл недоступен');
       })
       .finally(() => setIsLoadingFile(false));
-  }, [book]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book?.path]);
 
   // Android back button
   useEffect(() => {
@@ -57,10 +61,11 @@ export function ReaderScreen() {
   }, [toc, book]);
 
   const handleRelocated = useCallback(
-    (cfi: string, index: number) => {
+    (cfi: string, index: number, skipTitleUpdate = false) => {
       if (!book) return;
+      setIsViewerReady(true);
       progressRef.current = index;
-      if (toc.length > 0) {
+      if (!skipTitleUpdate && toc.length > 0) {
         // match by href — spine index ≠ TOC index in most epubs
         const spineItem = (epubBook?.spine as any)?.get(index);
         const spineHref = spineItem?.href?.split('#')[0];
@@ -102,7 +107,7 @@ export function ReaderScreen() {
     );
   }
 
-  const isLoading = isLoadingFile || status === 'loading' || status === 'idle';
+  const isLoading = isLoadingFile || status === 'loading' || status === 'idle' || !isViewerReady;
 
   return (
     <Page>
@@ -121,28 +126,31 @@ export function ReaderScreen() {
         }
       />
 
-      {isLoading && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-400">Загрузка...</div>
-        </div>
-      )}
+      <div className="flex-1 relative overflow-hidden">
+        {status === 'error' && (
+          <ErrorBlock
+            message="Не удалось открыть книгу"
+            onBack={closeBook}
+          />
+        )}
 
-      {status === 'error' && (
-        <ErrorBlock
-          message="Не удалось открыть книгу"
-          onBack={closeBook}
-        />
-      )}
+        {status === 'ready' && epubBook && (
+          <EpubViewer
+            ref={viewerRef}
+            book={epubBook}
+            savedCfi={book.lastCfi}
+            settings={readerSettings}
+            chapterTitle={chapterTitle}
+            onRelocated={handleRelocated}
+          />
+        )}
 
-      {status === 'ready' && epubBook && (
-        <EpubViewer
-          ref={viewerRef}
-          book={epubBook}
-          savedCfi={book.lastCfi}
-          settings={readerSettings}
-          onRelocated={handleRelocated}
-        />
-      )}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-white dark:bg-gray-900">
+            <div className="text-gray-400">Загрузка...</div>
+          </div>
+        )}
+      </div>
 
       <Toolbar>
         <Link toolbar onClick={() => viewerRef.current?.prev()}>‹ Назад</Link>
