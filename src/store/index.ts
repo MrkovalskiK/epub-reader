@@ -39,8 +39,8 @@ interface AppStore {
   removeBook: (id: string) => void;
 }
 
-export function generateBookId(path: string): string {
-  return btoa(encodeURIComponent(path)).slice(0, 12);
+export function generateBookId(_path: string): string {
+  return crypto.randomUUID();
 }
 
 export const useStore = create<AppStore>((set) => ({

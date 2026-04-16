@@ -21,27 +21,32 @@ export function useEpub(buffer: ArrayBuffer | null): UseEpubResult {
   useEffect(() => {
     if (!buffer) return;
 
-    let current: Book | null = null;
+    let cancelled = false;
+    const bookInstance = openBookFromBuffer(buffer);
     setStatus('loading');
     setError(null);
 
     (async () => {
       try {
-        current = openBookFromBuffer(buffer);
-        await current.ready;
-        const navigation = await current.loaded.navigation;
+        await bookInstance.ready;
+        if (cancelled) { bookInstance.destroy(); return; }
+        const navigation = await bookInstance.loaded.navigation;
+        if (cancelled) { bookInstance.destroy(); return; }
         setToc(navigation.toc || []);
-        setBook(current);
+        setBook(bookInstance);
         setStatus('ready');
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Ошибка загрузки книги');
-        setStatus('error');
-        current?.destroy();
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Ошибка загрузки книги');
+          setStatus('error');
+        }
+        bookInstance.destroy();
       }
     })();
 
     return () => {
-      current?.destroy();
+      cancelled = true;
+      bookInstance.destroy();
     };
   }, [buffer]);
 

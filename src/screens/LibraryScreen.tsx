@@ -30,6 +30,7 @@ export function LibraryScreen() {
       const meta = book.packaging.metadata;
       const nav = await book.loaded.navigation;
       const toc = nav.toc || [];
+      const spineItems = (book.spine as any)?.items?.length ?? toc.length ?? 1;
 
       const record = {
         id: generateBookId(path),
@@ -38,7 +39,7 @@ export function LibraryScreen() {
         author: (meta.creator as string) || '',
         lastCfi: null,
         lastChapterIndex: 0,
-        totalChapters: toc.length || 1,
+        totalChapters: spineItems,
         progressPercent: 0,
         lastReadAt: null,
         addedAt: new Date().toISOString(),

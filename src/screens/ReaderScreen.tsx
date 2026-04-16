@@ -10,7 +10,7 @@ import { readEpubFile } from '../services/tauri';
 
 export function ReaderScreen() {
   const { library, currentBookId, readerSettings, closeBook, updateProgress, updateSettings, removeBook } = useStore();
-  const book = library.find((b) => b.id === currentBookId)!;
+  const book = library.find((b) => b.id === currentBookId);
 
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -26,6 +26,7 @@ export function ReaderScreen() {
 
   // Load file on mount
   useEffect(() => {
+    if (!book) return;
     setIsLoadingFile(true);
     readEpubFile(book.path)
       .then((buf) => {
@@ -38,7 +39,7 @@ export function ReaderScreen() {
         setFileError(e instanceof Error ? e.message : 'Файл недоступен');
       })
       .finally(() => setIsLoadingFile(false));
-  }, [book.path]);
+  }, [book]);
 
   // Android back button
   useEffect(() => {
@@ -49,13 +50,15 @@ export function ReaderScreen() {
 
   // Update chapter title when toc changes
   useEffect(() => {
+    if (!book) return;
     if (toc.length > 0 && book.lastChapterIndex < toc.length) {
       setChapterTitle(toc[book.lastChapterIndex]?.label?.trim() || '');
     }
-  }, [toc, book.lastChapterIndex]);
+  }, [toc, book]);
 
   const handleRelocated = useCallback(
     (cfi: string, index: number) => {
+      if (!book) return;
       progressRef.current = index;
       if (toc.length > 0) {
         // match by href — spine index ≠ TOC index in most epubs
@@ -64,17 +67,17 @@ export function ReaderScreen() {
         const tocItem = spineHref
           ? toc.find((t) => t.href.split('#')[0] === spineHref)
           : toc[index];
-        console.log('[handleRelocated] spineHref=%s tocItem=%s', spineHref, tocItem?.label);
         setChapterTitle(tocItem?.label?.trim() || '');
       }
       // spine items count is the correct denominator — loc.start.index is the spine index
       const spineTotal = (epubBook?.spine as any)?.items?.length;
       const total = spineTotal || toc.length || 1;
-      console.log('[handleRelocated] cfi=%s index=%d spineTotal=%d tocLength=%d total=%d', cfi, index, spineTotal, toc.length, total);
       updateProgress(book.id, cfi, index, total);
     },
-    [book.id, toc, updateProgress, epubBook]
+    [book, toc, updateProgress, epubBook]
   );
+
+  if (!book) { closeBook(); return null; }
 
   if (fileError) {
     return (

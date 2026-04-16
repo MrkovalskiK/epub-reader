@@ -16,16 +16,18 @@ fn pick_epub_file(app: AppHandle) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-fn read_epub_file(app: AppHandle, path: String) -> Result<Vec<u8>, String> {
+fn read_epub_file(app: AppHandle, path: String) -> Result<tauri::ipc::Response, String> {
     use tauri_plugin_fs::FilePath;
     let url = tauri::Url::parse(&path).map_err(|e| e.to_string())?;
-    app.fs().read(FilePath::from(url)).map_err(|e| e.to_string())
+    let bytes = app.fs().read(FilePath::from(url)).map_err(|e| e.to_string())?;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
 fn save_state(app: AppHandle, json: String) -> Result<(), String> {
     let store = app.store("app_state.json").map_err(|e| e.to_string())?;
-    store.set("state", serde_json::Value::String(json));
+    let value: serde_json::Value = serde_json::from_str(&json).map_err(|e| e.to_string())?;
+    store.set("state", value);
     store.save().map_err(|e| e.to_string())
 }
 
@@ -33,7 +35,7 @@ fn save_state(app: AppHandle, json: String) -> Result<(), String> {
 fn load_state(app: AppHandle) -> Result<Option<String>, String> {
     let store = app.store("app_state.json").map_err(|e| e.to_string())?;
     let value = store.get("state");
-    Ok(value.and_then(|v| v.as_str().map(String::from)))
+    Ok(value.map(|v| v.to_string()))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

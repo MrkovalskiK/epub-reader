@@ -21,8 +21,7 @@ export async function pickEpubFile(): Promise<string | null> {
 
 export async function readEpubFile(path: string): Promise<ArrayBuffer> {
   if (isTauri()) {
-    const bytes = await invoke<number[]>('read_epub_file', { path });
-    return new Uint8Array(bytes).buffer;
+    return invoke<ArrayBuffer>('read_epub_file', { path });
   }
 
   // browser: path is a blob URL created by pickEpubFile

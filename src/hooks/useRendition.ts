@@ -63,8 +63,6 @@ export function useRendition({
 		rendition.on(
 			"relocated",
 			(loc: { start: { cfi: string; index: number } }) => {
-				console.log("relocated", loc);
-
 				const contents = (rendition as any).getContents?.() ?? [];
 				const body: HTMLBodyElement | undefined =
 					contents[0]?.document?.body;
@@ -87,10 +85,8 @@ export function useRendition({
 		);
 
 		(async () => {
-			console.log("[useRendition] display initialCfi=%s", initialCfi);
 			try {
 				await rendition.display(initialCfi ?? undefined);
-				console.log("[useRendition] display succeeded");
 			} catch (e) {
 				console.warn(
 					"[useRendition] display(initialCfi) failed, falling back to start:",
