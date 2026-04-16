@@ -57,12 +57,23 @@ export function ReaderScreen() {
   const handleRelocated = useCallback(
     (cfi: string, index: number) => {
       progressRef.current = index;
-      if (toc.length > 0 && index < toc.length) {
-        setChapterTitle(toc[index]?.label?.trim() || '');
+      if (toc.length > 0) {
+        // match by href — spine index ≠ TOC index in most epubs
+        const spineItem = (epubBook?.spine as any)?.get(index);
+        const spineHref = spineItem?.href?.split('#')[0];
+        const tocItem = spineHref
+          ? toc.find((t) => t.href.split('#')[0] === spineHref)
+          : toc[index];
+        console.log('[handleRelocated] spineHref=%s tocItem=%s', spineHref, tocItem?.label);
+        setChapterTitle(tocItem?.label?.trim() || '');
       }
-      updateProgress(book.id, cfi, index, toc.length || 1);
+      // spine items count is the correct denominator — loc.start.index is the spine index
+      const spineTotal = (epubBook?.spine as any)?.items?.length;
+      const total = spineTotal || toc.length || 1;
+      console.log('[handleRelocated] cfi=%s index=%d spineTotal=%d tocLength=%d total=%d', cfi, index, spineTotal, toc.length, total);
+      updateProgress(book.id, cfi, index, total);
     },
-    [book.id, toc, updateProgress]
+    [book.id, toc, updateProgress, epubBook]
   );
 
   if (fileError) {

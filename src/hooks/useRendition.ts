@@ -1,85 +1,125 @@
-import { useState, useEffect, useRef, RefObject } from 'react';
-import { Book, Rendition } from 'epubjs';
-import { ReaderSettings } from '../store/index';
+import { useState, useEffect, useRef, type RefObject } from "react";
+import type { Book, Rendition } from "epubjs";
+import type { ReaderSettings } from "../store/index";
 
 interface UseRenditionOptions {
-  book: Book | null;
-  containerRef: RefObject<HTMLDivElement | null>;
-  settings: ReaderSettings;
-  initialCfi: string | null;
-  onRelocated: (cfi: string, index: number) => void;
+	book: Book | null;
+	containerRef: RefObject<HTMLDivElement | null>;
+	settings: ReaderSettings;
+	initialCfi: string | null;
+	onRelocated: (cfi: string, index: number) => void;
 }
 
 interface UseRenditionResult {
-  next: () => void;
-  prev: () => void;
-  displayHref: (href: string) => void;
+	next: () => void;
+	prev: () => void;
+	displayHref: (href: string) => void;
+	isEmpty: boolean;
 }
 
 const THEMES = {
-  light: { body: { background: '#ffffff', color: '#1a1a1a' } },
-  sepia: { body: { background: '#f4ecd8', color: '#3b2f1e' } },
-  dark: { body: { background: '#1a1a1a', color: '#e0e0e0' } },
+	light: { body: { background: "#ffffff", color: "#1a1a1a" } },
+	sepia: { body: { background: "#f4ecd8", color: "#3b2f1e" } },
+	dark: { body: { background: "#1a1a1a", color: "#e0e0e0" } },
 };
 
 export function useRendition({
-  book,
-  containerRef,
-  settings,
-  initialCfi,
-  onRelocated,
+	book,
+	containerRef,
+	settings,
+	initialCfi,
+	onRelocated,
 }: UseRenditionOptions): UseRenditionResult {
-  const renditionRef = useRef<Rendition | null>(null);
-  const [, forceUpdate] = useState(0);
+	const renditionRef = useRef<Rendition | null>(null);
+	const [, forceUpdate] = useState(0);
+	const [isEmpty, setIsEmpty] = useState(false);
+	const onRelocatedRef = useRef(onRelocated);
 
-  useEffect(() => {
-    if (!book || !containerRef.current) return;
+	useEffect(() => {
+		onRelocatedRef.current = onRelocated;
+	}, [onRelocated]);
 
-    const rendition = book.renderTo(containerRef.current, {
-      flow: 'scrolled-doc',
-      width: '100%',
-      height: '100%',
-    });
+	useEffect(() => {
+		setIsEmpty(false);
+		if (!book || !containerRef.current) return;
 
-    renditionRef.current = rendition;
+		const rendition = book.renderTo(containerRef.current, {
+			flow: "scrolled-doc",
+			width: "100%",
+			height: "100%",
+		});
 
-    Object.entries(THEMES).forEach(([name, styles]) => {
-      rendition.themes.register(name, styles);
-    });
-    rendition.themes.select(settings.theme);
-    rendition.themes.fontSize(settings.fontSize + 'px');
+		renditionRef.current = rendition;
 
-    rendition.on('relocated', (loc: { start: { cfi: string; index: number } }) => {
-      onRelocated(loc.start.cfi, loc.start.index);
-    });
+		Object.entries(THEMES).forEach(([name, styles]) => {
+			rendition.themes.register(name, styles);
+		});
+		rendition.themes.select(settings.theme);
+		rendition.themes.fontSize(settings.fontSize + "px");
 
-    (async () => {
-      try {
-        await rendition.display(initialCfi ?? undefined);
-      } catch {
-        await rendition.display();
-      }
-    })();
+		const spineLength: number =
+			(book.spine as any)?.items?.length ?? 0;
 
-    forceUpdate((n) => n + 1);
+		rendition.on(
+			"relocated",
+			(loc: { start: { cfi: string; index: number } }) => {
+				console.log("relocated", loc);
 
-    return () => {
-      rendition.destroy();
-      renditionRef.current = null;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book]);
+				const contents = (rendition as any).getContents?.() ?? [];
+				const body: HTMLBodyElement | undefined =
+					contents[0]?.document?.body;
+				const hasContent = !body || (body.textContent ?? '').trim().length > 50;
 
-  useEffect(() => {
-    const r = renditionRef.current;
-    if (!r) return;
-    r.themes.select(settings.theme);
-    r.themes.fontSize(settings.fontSize + 'px');
-  }, [settings.theme, settings.fontSize]);
+				if (!hasContent) {
+					if (loc.start.index < spineLength - 1) {
+						// more spine items ahead — skip this empty one
+						rendition.next();
+					} else {
+						// last spine item and it's empty — show overlay
+						setIsEmpty(true);
+					}
+					return;
+				}
 
-  return {
-    next: () => renditionRef.current?.next(),
-    prev: () => renditionRef.current?.prev(),
-    displayHref: (href) => renditionRef.current?.display(href),
-  };
+				setIsEmpty(false);
+				onRelocatedRef.current(loc.start.cfi, loc.start.index);
+			},
+		);
+
+		(async () => {
+			console.log("[useRendition] display initialCfi=%s", initialCfi);
+			try {
+				await rendition.display(initialCfi ?? undefined);
+				console.log("[useRendition] display succeeded");
+			} catch (e) {
+				console.warn(
+					"[useRendition] display(initialCfi) failed, falling back to start:",
+					e,
+				);
+				await rendition.display();
+			}
+		})();
+
+		forceUpdate((n) => n + 1);
+
+		return () => {
+			rendition.destroy();
+			renditionRef.current = null;
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [book]);
+
+	useEffect(() => {
+		const r = renditionRef.current;
+		if (!r) return;
+		r.themes.select(settings.theme);
+		r.themes.fontSize(settings.fontSize + "px");
+	}, [settings.theme, settings.fontSize]);
+
+	return {
+		next: () => renditionRef.current?.next(),
+		prev: () => renditionRef.current?.prev(),
+		displayHref: (href) => renditionRef.current?.display(href),
+		isEmpty,
+	};
 }

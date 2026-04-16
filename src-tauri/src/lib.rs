@@ -1,6 +1,7 @@
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_fs::FsExt;
+use log::LevelFilter;
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_store::StoreExt;
 
@@ -40,6 +41,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
+                .level(LevelFilter::Info)
                 .targets([
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::Webview),
