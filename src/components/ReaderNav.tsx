@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Navbar } from 'konsta/react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import type { Book } from '~/types/book';
 import { TableOfContents } from '~/components/TableOfContents';
 import { useReaderStore } from '~/store/readerStore';
@@ -20,11 +22,20 @@ export function ReaderTopNav({ book, viewRef, onClose }: TopNavProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b">
-        <button type="button" onClick={onClose} className="text-blue-600 font-medium">← Back</button>
-        <span className="text-sm font-medium truncate max-w-[60%]">{book.title}</span>
-        <button type="button" onClick={() => setTocOpen(true)} className="text-gray-600">☰</button>
-      </div>
+      <Navbar
+        title={book.title}
+        titleClassName="truncate"
+        left={
+          <button type="button" onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8">
+            <ArrowLeft size={20} />
+          </button>
+        }
+        right={
+          <button type="button" onClick={() => setTocOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8">
+            <Menu size={20} />
+          </button>
+        }
+      />
       {tocOpen && (
         <TableOfContents
           toc={toc}
@@ -44,10 +55,14 @@ export function ReaderBottomNav({ viewRef }: BottomNavProps) {
   const { fraction } = useReaderStore();
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-white border-t">
-      <button type="button" onClick={() => callView(viewRef, 'prev')} className="px-4 py-2 text-blue-600">‹ Prev</button>
-      <span className="text-xs text-gray-400">{Math.round(fraction * 100)}%</span>
-      <button type="button" onClick={() => callView(viewRef, 'next')} className="px-4 py-2 text-blue-600">Next ›</button>
+    <div className="flex items-center min-h-16 px-2 bg-white border-t border-gray-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <button type="button" onClick={() => callView(viewRef, 'prev')} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
+        <ChevronLeft size={24} />
+      </button>
+      <span className="flex-1 text-center text-sm text-[#49454f] font-medium">{Math.round(fraction * 100)}%</span>
+      <button type="button" onClick={() => callView(viewRef, 'next')} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
+        <ChevronRight size={24} />
+      </button>
     </div>
   );
 }

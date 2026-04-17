@@ -35,16 +35,16 @@ export function ReaderScreen({ book, onClose }: Props) {
 
   if (initialCfi === null) {
     return (
-      <div className="flex h-screen items-center justify-center bg-white">
+      <div className="flex h-[100dvh] items-center justify-center bg-white">
         <span className="text-gray-400">Opening…</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-[100dvh]">
       <ReaderTopNav book={book} viewRef={viewRef} onClose={onClose} />
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <EpubViewer
           localPath={book.localPath}
           initialCfi={initialCfi ?? undefined}
