@@ -12,6 +12,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.0",
+    "@tauri-apps/plugin-fs": "^2.5.0",
     "@tauri-apps/plugin-store": "^2.4.2",
     "dayjs": "^1.11.13",
     "foliate-js": "github:johnfactotum/foliate-js",
@@ -20,6 +21,11 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zustand": "^5.0.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "foliate-js@0.0.0": "patches/foliate-js@0.0.0.patch"
+    }
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",

@@ -1,0 +1,19 @@
+diff --git a/epub.js b/epub.js
+index e8bd70333accb9f9f6fb7389cb434b6805156da0..cddaa43774d71d8da58bb97822b1df3621fe4145 100644
+--- a/epub.js
++++ b/epub.js
+@@ -671,8 +671,14 @@ class Resources {
+             ?? this.getItemByID($$$(opf, 'meta')
+                 .find(filterAttribute('name', 'cover'))
+                 ?.getAttribute('content'))
++            ?? this.manifest.find(item => item.id === 'cover'
++                && item.mediaType.startsWith('image'))
++            ?? this.manifest.find(item => item.href.includes('cover')
++                && item.mediaType.startsWith('image'))
+             ?? this.getItemByHref(this.guide
+                 ?.find(ref => ref.type.includes('cover'))?.href)
++            // last resort: first image in manifest
++            ?? this.manifest.find(item => item.mediaType.startsWith('image'))
+ 
+         this.cfis = CFI.fromElements($$itemref)
+     }

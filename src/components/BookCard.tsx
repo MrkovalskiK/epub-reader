@@ -10,6 +10,12 @@ interface Props {
 
 export function BookCard({ book, onOpen, onLongPress }: Props) {
   const [fraction, setFraction] = useState<number | null>(null);
+  const [imgFailed, setImgFailed] = useState(false);
+  const prevIdRef = useRef(book.id);
+  if (prevIdRef.current !== book.id) {
+    prevIdRef.current = book.id;
+    setImgFailed(false);
+  }
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -43,8 +49,13 @@ export function BookCard({ book, onOpen, onLongPress }: Props) {
       className="w-full flex items-center gap-3 px-3 py-2 text-left active:bg-black/5 transition-colors"
     >
       <div className="w-[72px] shrink-0 aspect-[2/3] bg-[#d0bcff]/30 rounded-xl overflow-hidden flex items-center justify-center">
-        {book.coverPath ? (
-          <img src={book.coverPath} alt={book.title} className="w-full h-full object-cover" />
+        {book.coverImageUrl && !imgFailed ? (
+          <img
+            src={book.coverImageUrl}
+            alt={book.title}
+            className="w-full h-full object-cover"
+            onError={() => setImgFailed(true)}
+          />
         ) : (
           <span className="text-3xl">📖</span>
         )}

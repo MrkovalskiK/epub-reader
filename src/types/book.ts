@@ -4,6 +4,7 @@ export interface Book {
   author: string
   localPath: string
   coverPath?: string
+  coverImageUrl?: string | null
   addedAt: number
 }
 

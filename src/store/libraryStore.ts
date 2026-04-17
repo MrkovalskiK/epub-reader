@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Book } from '~/types/book';
 import { saveLibrary, loadLibrary } from '~/services/storageService';
+import { generateCoverImageUrl } from '~/services/epubService';
 
 interface LibraryState {
   books: Book[];
@@ -15,6 +16,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   initialized: false,
   init: async () => {
     const books = await loadLibrary();
+    const chunkSize = 20;
+    for (let i = 0; i < books.length; i += chunkSize) {
+      const batch = books.slice(i, i + chunkSize);
+      await Promise.all(batch.map(async (book) => {
+        book.coverImageUrl = await generateCoverImageUrl(book);
+      }));
+    }
     set({ books, initialized: true });
   },
   addBook: async (book) => {
