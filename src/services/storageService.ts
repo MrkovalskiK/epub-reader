@@ -16,6 +16,11 @@ export async function loadProgress(bookId: string): Promise<string | null> {
   return data?.cfi ?? null;
 }
 
+export async function loadFraction(bookId: string): Promise<number | null> {
+  const data = await progressStore.get<ReadingProgress>(bookId);
+  return data?.fraction ?? null;
+}
+
 export async function saveLibrary(books: Book[]): Promise<void> {
   await libraryStore.set('books', books);
   await libraryStore.save();

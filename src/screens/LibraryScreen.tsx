@@ -1,8 +1,9 @@
-import { useEffect } from "react";
-import { Page, Navbar, Fab } from "konsta/react";
+import { useEffect, useState } from "react";
+import { Page, Navbar, Fab, Preloader } from "konsta/react";
 import { PlusIcon } from "lucide-react";
 import { useLibraryStore } from "~/store/libraryStore";
 import { BookCard } from "~/components/BookCard";
+import { BookActionSheet } from "~/components/BookActionSheet";
 import { importEpub } from "~/services/epubService";
 import type { Book } from "~/types/book";
 
@@ -12,6 +13,7 @@ interface Props {
 
 export function LibraryScreen({ onOpenBook }: Props) {
 	const { books, initialized, init, addBook } = useLibraryStore();
+	const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
 	useEffect(() => {
 		if (!initialized) init();
@@ -29,26 +31,32 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			await addBook(book);
 		} catch (err) {
 			alert(
-				`Import failed: ${err instanceof Error ? err.message : String(err)}`,
+				`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`,
 			);
 		}
 	};
 
 	return (
 		<Page>
-			<Navbar title="My Library" />
-			{books.length === 0 ? (
+			<Navbar title="Моя библиотека" />
+			{!initialized ? (
+				<div className="flex flex-col items-center justify-center h-64 gap-4">
+					<Preloader />
+					<p className="text-sm text-[#49454f]">Загрузка...</p>
+				</div>
+			) : books.length === 0 ? (
 				<div className="flex flex-col items-center justify-center h-64 text-[#49454f]">
-					<p>No books yet.</p>
-					<p className="text-sm">Tap &quot;Add Book&quot; to import an EPUB.</p>
+					<p>Нет книг.</p>
+					<p className="text-sm">Нажмите «+», чтобы импортировать EPUB.</p>
 				</div>
 			) : (
-				<div className="grid grid-cols-2 gap-3 p-4 pb-20">
+				<div className="flex flex-col pb-20">
 					{books.map((book) => (
 						<BookCard
 							key={book.id}
 							book={book}
 							onOpen={() => onOpenBook(book)}
+							onLongPress={() => setSelectedBook(book)}
 						/>
 					))}
 				</div>
@@ -58,6 +66,12 @@ export function LibraryScreen({ onOpenBook }: Props) {
 				icon={<PlusIcon />}
 				onClick={handleAdd}
 			/>
+			{selectedBook && (
+				<BookActionSheet
+					book={selectedBook}
+					onClose={() => setSelectedBook(null)}
+				/>
+			)}
 		</Page>
 	);
 }
