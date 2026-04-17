@@ -1,39 +1,21 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { App as KonstaApp } from 'konsta/react';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/ru';
-import { useStore } from './store/index';
-import { hydrateStore } from './store/persistence';
-import { AppErrorBoundary } from './components/AppErrorBoundary';
-import { LibraryScreen } from './screens/LibraryScreen';
-import { ReaderScreen } from './screens/ReaderScreen';
+import { AppErrorBoundary } from '~/components/AppErrorBoundary';
+import { LibraryScreen } from '~/screens/LibraryScreen';
+import { ReaderScreen } from '~/screens/ReaderScreen';
+import type { Book } from '~/types/book';
 
-dayjs.extend(relativeTime);
-dayjs.locale('ru');
-
-function App() {
-  const { isHydrated, currentBookId } = useStore();
-
-  useEffect(() => {
-    hydrateStore();
-  }, []);
-
-  if (!isHydrated) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-gray-400">Загрузка...</div>
-      </div>
-    );
-  }
+export function App() {
+  const [openBook, setOpenBook] = useState<Book | null>(null);
 
   return (
-    <KonstaApp theme="material" safeAreas>
+    <KonstaApp theme="material">
       <AppErrorBoundary>
-        {currentBookId ? <ReaderScreen /> : <LibraryScreen />}
+        {openBook
+          ? <ReaderScreen book={openBook} onClose={() => setOpenBook(null)} />
+          : <LibraryScreen onOpenBook={setOpenBook} />
+        }
       </AppErrorBoundary>
     </KonstaApp>
   );
 }
-
-export default App;

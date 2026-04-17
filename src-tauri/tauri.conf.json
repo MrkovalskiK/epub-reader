@@ -12,7 +12,11 @@
   "app": {
     "windows": [{ "title": "EPUB Reader", "width": 480, "height": 860 }],
     "security": {
-      "csp": "default-src 'self' tauri: asset: 'unsafe-inline' 'unsafe-eval' data: blob:"
+      "csp": "default-src 'self' tauri: asset: 'unsafe-inline' 'unsafe-eval' data: blob:",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/**", "$TEMP/**"]
+      }
     }
   },
   "bundle": {

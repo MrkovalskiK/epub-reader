@@ -1,40 +1,22 @@
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/ru';
-import { ListItem } from 'konsta/react';
-import { BookRecord } from '../store/index';
+import type { Book } from '~/types/book';
 
-dayjs.extend(relativeTime);
-dayjs.locale('ru');
-
-interface BookCardProps {
-  book: BookRecord;
+interface Props {
+  book: Book;
   onOpen: () => void;
 }
 
-export function BookCard({ book, onOpen }: BookCardProps) {
-  const subtitle = [
-    book.author,
-    book.lastReadAt ? dayjs(book.lastReadAt).locale('ru').fromNow() : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
+export function BookCard({ book, onOpen }: Props) {
   return (
-    <div>
-      <ListItem
-        link
-        title={book.title || 'Без названия'}
-        subtitle={subtitle || undefined}
-        after={`${book.progressPercent}%`}
-        onClick={onOpen}
-      />
-      <div className="h-1 bg-gray-200 mx-4 mb-2 rounded-full">
-        <div
-          style={{ width: `${book.progressPercent}%` }}
-          className="h-full bg-blue-500 rounded-full transition-all"
-        />
+    <button
+      type="button"
+      onClick={onOpen}
+      className="bg-white rounded-xl shadow-sm p-4 text-left w-full hover:shadow-md transition-shadow"
+    >
+      <div className="aspect-[2/3] bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
+        <span className="text-4xl">📖</span>
       </div>
-    </div>
+      <p className="font-medium text-sm leading-tight line-clamp-2">{book.title}</p>
+      <p className="text-xs text-gray-400 mt-1 truncate">{book.author}</p>
+    </button>
   );
 }

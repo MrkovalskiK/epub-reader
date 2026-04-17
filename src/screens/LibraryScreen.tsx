@@ -1,98 +1,51 @@
-import { useState } from 'react';
-import { Page, Navbar, Link, List, Block, Button } from 'konsta/react';
-import { BookCard } from '../components/BookCard';
-import { ErrorBlock } from '../components/ErrorBlock';
-import { useStore, generateBookId } from '../store/index';
-import { pickEpubFile, readEpubFile } from '../services/tauri';
-import { openBookFromBuffer } from '../services/epub';
+import { useEffect } from 'react';
+import { useLibraryStore } from '~/store/libraryStore';
+import { BookCard } from '~/components/BookCard';
+import { importEpub } from '~/services/epubService';
+import type { Book } from '~/types/book';
 
-export function LibraryScreen() {
-  const { library, addBook, openBook } = useStore();
-  const [isAdding, setIsAdding] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
+interface Props { onOpenBook: (book: Book) => void }
 
-  async function handleAdd() {
-    setAddError(null);
-    setIsAdding(true);
+export function LibraryScreen({ onOpenBook }: Props) {
+  const { books, initialized, init, addBook } = useLibraryStore();
+
+  useEffect(() => { if (!initialized) init(); }, [initialized, init]);
+
+  const handleAdd = async () => {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: 'EPUB', extensions: ['epub'] }],
+    });
+    if (!selected) return;
     try {
-      const path = await pickEpubFile();
-      if (!path) return;
-
-      const buffer = await readEpubFile(path);
-
-      if (buffer.byteLength > 50 * 1024 * 1024) {
-        console.warn('Large file, loading may take a while');
-      }
-
-      const book = openBookFromBuffer(buffer);
-      await book.ready;
-
-      const meta = book.packaging.metadata;
-      const nav = await book.loaded.navigation;
-      const toc = nav.toc || [];
-      const spineItems = (book.spine as any)?.items?.length ?? toc.length ?? 1;
-
-      const record = {
-        id: generateBookId(path),
-        path,
-        title: (meta.title as string) || 'Без названия',
-        author: (meta.creator as string) || '',
-        lastCfi: null,
-        lastChapterIndex: 0,
-        totalChapters: spineItems,
-        progressPercent: 0,
-        lastReadAt: null,
-        addedAt: new Date().toISOString(),
-      };
-
-      book.destroy();
-      addBook(record);
-      openBook(record.id);
-    } catch (e) {
-      setAddError(e instanceof Error ? e.message : 'Не удалось открыть файл');
-    } finally {
-      setIsAdding(false);
+      const book = await importEpub(selected as string);
+      await addBook(book);
+    } catch (err) {
+      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }
+  };
 
   return (
-    <Page>
-      <Navbar
-        title="Библиотека"
-        right={
-          <Link navbar onClick={isAdding ? undefined : handleAdd}>
-            {isAdding ? '...' : '+'}
-          </Link>
-        }
-      />
-
-      {addError && (
-        <Block>
-          <ErrorBlock
-            message={addError}
-            onRetry={() => { setAddError(null); handleAdd(); }}
-          />
-        </Block>
-      )}
-
-      {library.length === 0 ? (
-        <Block className="text-center">
-          <p className="text-gray-500 mb-4">Нет книг</p>
-          <Button onClick={handleAdd} disabled={isAdding}>
-            Открыть файл
-          </Button>
-        </Block>
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex justify-between items-center p-4 border-b bg-white">
+        <h1 className="text-xl font-bold">My Library</h1>
+        <button type="button" onClick={handleAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+          + Add Book
+        </button>
+      </div>
+      {books.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+          <p>No books yet.</p>
+          <p className="text-sm">Tap &quot;Add Book&quot; to import an EPUB.</p>
+        </div>
       ) : (
-        <List>
-          {library.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              onOpen={() => openBook(book.id)}
-            />
+        <div className="grid grid-cols-2 gap-4 p-4">
+          {books.map(book => (
+            <BookCard key={book.id} book={book} onOpen={() => onOpenBook(book)} />
           ))}
-        </List>
+        </div>
       )}
-    </Page>
+    </div>
   );
 }

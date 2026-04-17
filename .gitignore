@@ -28,3 +28,7 @@ dist-ssr
 .claude
 .vscode
 .local
+
+# Tauri
+build
+.tauri

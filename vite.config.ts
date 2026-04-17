@@ -1,12 +1,34 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { resolve } from "path";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      // foliate-js/pdf.js uses import.meta.glob('vendor/pdfjs/*') which breaks Vite.
+      // We don't use PDF support, so stub it out at the load stage (after path resolution).
+      name: 'stub-foliate-pdf',
+      load(id) {
+        if (id.includes('/foliate-js/pdf.js')) {
+          return 'export class PDFBook {}';
+        }
+      },
+    },
+  ],
+  resolve: {
+    alias: {
+      '~': resolve(__dirname, 'src'),
+    },
+  },
+  optimizeDeps: {
+    exclude: ['foliate-js'],
+  },
   clearScreen: false,
   server: {
     port: 1420,
