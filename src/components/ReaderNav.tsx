@@ -5,6 +5,8 @@ import type { Book } from '~/types/book';
 import { TableOfContents } from '~/components/TableOfContents';
 import { useReaderStore } from '~/store/readerStore';
 import type { ReadingMode } from '~/store/readerStore';
+import type { ReadingTheme } from '~/types/bookSettings';
+import { themes } from '~/styles/themes';
 
 function callView(viewRef: React.RefObject<HTMLElement | null>, method: string, ...args: unknown[]) {
   // @ts-expect-error — foliate-view custom element
@@ -22,8 +24,20 @@ const READING_MODES: { value: ReadingMode; label: string; description: string }[
   { value: 'scrolled',  label: 'Scrolling', description: 'Continuous scroll' },
 ];
 
+const THEMES: { value: ReadingTheme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark',  label: 'Dark'  },
+  { value: 'sepia', label: 'Sepia' },
+];
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs font-medium uppercase tracking-wider text-[#49454f] mb-3">{children}</p>;
+}
+
 function SettingsSheet({ onClose }: { onClose: () => void }) {
-  const { readingMode, setReadingMode } = useReaderStore();
+  const { readingMode, setReadingMode, bookSettings, setBookSettings } = useReaderStore();
+  const s = bookSettings;
+  const update = (patch: Partial<typeof s>) => setBookSettings({ ...s, ...patch });
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -33,9 +47,76 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           <span className="text-lg font-medium text-[#1c1b1f] flex-1">Settings</span>
           <button type="button" onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f] text-2xl">×</button>
         </div>
-        <div className="flex-1 overflow-y-auto py-2">
-          <div className="px-6 pb-2">
-            <p className="text-xs font-medium uppercase tracking-wider text-[#49454f] mb-3">Reading Mode</p>
+        <div className="flex-1 overflow-y-auto py-2 space-y-6">
+
+          {/* Theme */}
+          <div className="px-6">
+            <SectionLabel>Theme</SectionLabel>
+            <div className="flex gap-2">
+              {THEMES.map(({ value, label }) => {
+                const palette = themes[value];
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => update({ theme: value })}
+                    className={`flex-1 py-3 rounded-xl border-2 text-sm font-medium transition-colors ${
+                      s.theme === value ? 'border-[#6750a4]' : 'border-transparent'
+                    }`}
+                    style={{ background: palette.bg, color: palette.fg }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Font */}
+          <div className="px-6">
+            <SectionLabel>Font</SectionLabel>
+            <div className="flex gap-2 mb-4">
+              {(['Serif', 'Sans-serif'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => update({ defaultFont: f })}
+                  className={`flex-1 py-3 rounded-xl border-2 text-sm font-medium transition-colors ${
+                    s.defaultFont === f ? 'border-[#6750a4] bg-[#6750a4]/8 text-[#6750a4]' : 'border-transparent bg-[#f3edf7] text-[#1c1b1f]'
+                  }`}
+                  style={{ fontFamily: f === 'Serif' ? 'Georgia, serif' : 'Arial, sans-serif' }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <SectionLabel>Font Size</SectionLabel>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => update({ defaultFontSize: Math.max(10, s.defaultFontSize - 1) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
+              <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.defaultFontSize}px</span>
+              <button type="button" onClick={() => update({ defaultFontSize: Math.min(32, s.defaultFontSize + 1) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="px-6">
+            <SectionLabel>Line Height</SectionLabel>
+            <div className="flex items-center gap-3 mb-4">
+              <button type="button" onClick={() => update({ lineHeight: Math.max(1, +(s.lineHeight - 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
+              <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.lineHeight.toFixed(1)}</span>
+              <button type="button" onClick={() => update({ lineHeight: Math.min(3, +(s.lineHeight + 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
+            </div>
+            <SectionLabel>Paragraph Margin</SectionLabel>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => update({ paragraphMargin: Math.max(0, +(s.paragraphMargin - 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
+              <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.paragraphMargin.toFixed(1)}em</span>
+              <button type="button" onClick={() => update({ paragraphMargin: Math.min(2, +(s.paragraphMargin + 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
+            </div>
+          </div>
+
+          {/* Reading Mode */}
+          <div className="px-6 pb-4">
+            <SectionLabel>Reading Mode</SectionLabel>
             {READING_MODES.map(({ value, label, description }) => (
               <button
                 key={value}
@@ -52,6 +133,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
+
         </div>
       </div>
     </div>

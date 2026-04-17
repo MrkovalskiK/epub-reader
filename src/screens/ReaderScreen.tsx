@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { EpubViewer } from '~/components/EpubViewer';
 import { ReaderTopNav, ReaderBottomNav } from '~/components/ReaderNav';
 import { useReaderStore } from '~/store/readerStore';
-import { saveProgress, loadProgress } from '~/services/storageService';
+import { saveProgress, loadProgress, saveBookSettings, loadBookSettings } from '~/services/storageService';
 import type { Book, TOCItem } from '~/types/book';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function ReaderScreen({ book, onClose }: Props) {
-  const { setCfi, setToc, setLoading, reset, readingMode } = useReaderStore();
+  const { setCfi, setToc, setLoading, reset, readingMode, bookSettings, setBookSettings } = useReaderStore();
   const [initialCfi, setInitialCfi] = useState<string | null | undefined>(null);
   const viewRef = useRef<HTMLElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -21,8 +21,13 @@ export function ReaderScreen({ book, onClose }: Props) {
     reset();
     maxFractionRef.current = 0;
     loadProgress(book.id).then(cfi => setInitialCfi(cfi ?? undefined));
+    loadBookSettings(book.id).then(setBookSettings);
     return () => clearTimeout(saveTimer.current);
-  }, [book.id, reset]);
+  }, [book.id, reset, setBookSettings]);
+
+  useEffect(() => {
+    saveBookSettings(book.id, bookSettings);
+  }, [book.id, bookSettings]);
 
   const handleRelocate = useCallback((cfi: string, fraction: number) => {
     setCfi(cfi, fraction);
@@ -54,6 +59,7 @@ export function ReaderScreen({ book, onClose }: Props) {
           localPath={book.localPath}
           initialCfi={initialCfi ?? undefined}
           readingMode={readingMode}
+          settings={bookSettings}
           viewRef={viewRef}
           onRelocate={handleRelocate}
           onTocLoad={handleTocLoad}

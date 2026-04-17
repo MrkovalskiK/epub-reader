@@ -1,8 +1,11 @@
 import { LazyStore } from '@tauri-apps/plugin-store';
 import type { Book, ReadingProgress } from '~/types/book';
+import type { BookSettings } from '~/types/bookSettings';
+import { DEFAULT_BOOK_SETTINGS } from '~/bookDefaults';
 
 const progressStore = new LazyStore('reading-progress.json');
 const libraryStore  = new LazyStore('library.json');
+const bookSettingsStore = new LazyStore('book-settings.json');
 
 export async function saveProgress(
   bookId: string, cfi: string, fraction: number
@@ -28,4 +31,14 @@ export async function saveLibrary(books: Book[]): Promise<void> {
 
 export async function loadLibrary(): Promise<Book[]> {
   return (await libraryStore.get<Book[]>('books')) ?? [];
+}
+
+export async function saveBookSettings(bookId: string, settings: BookSettings): Promise<void> {
+  await bookSettingsStore.set(bookId, settings);
+  await bookSettingsStore.save();
+}
+
+export async function loadBookSettings(bookId: string): Promise<BookSettings> {
+  const stored = await bookSettingsStore.get<BookSettings>(bookId);
+  return stored ? { ...DEFAULT_BOOK_SETTINGS, ...stored } : { ...DEFAULT_BOOK_SETTINGS };
 }

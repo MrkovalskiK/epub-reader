@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { TOCItem } from '~/types/book';
 import type { ReadingMode } from '~/store/readerStore';
+import type { BookSettings } from '~/types/bookSettings';
+import { getStyles } from '~/utils/getStyles';
 
 interface RelocateDetail {
   cfi: string;
@@ -14,6 +16,7 @@ interface Props {
   localPath: string;
   initialCfi: string | undefined;
   readingMode: ReadingMode;
+  settings: BookSettings;
   viewRef: React.RefObject<HTMLElement | null>;
   onRelocate: (cfi: string, fraction: number) => void;
   onTocLoad: (toc: TOCItem[]) => void;
@@ -23,18 +26,20 @@ interface Props {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const foliate = (el: HTMLElement | null): any => el;
 
-export function EpubViewer({ localPath, initialCfi, readingMode, viewRef, onRelocate, onTocLoad, onReady }: Props) {
+export function EpubViewer({ localPath, initialCfi, readingMode, settings, viewRef, onRelocate, onTocLoad, onReady }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isCreated = useRef(false);
   const onRelocateRef = useRef(onRelocate);
   const onTocLoadRef = useRef(onTocLoad);
   const onReadyRef = useRef(onReady);
   const readingModeRef = useRef(readingMode);
+  const settingsRef = useRef(settings);
 
   onRelocateRef.current = onRelocate;
   onTocLoadRef.current = onTocLoad;
   onReadyRef.current = onReady;
   readingModeRef.current = readingMode;
+  settingsRef.current = settings;
 
   // Dynamically switch reading mode on an already-open view
   useEffect(() => {
@@ -49,6 +54,12 @@ export function EpubViewer({ localPath, initialCfi, readingMode, viewRef, onRelo
       view.renderer.next();
     }
   }, [readingMode, viewRef]);
+
+  useEffect(() => {
+    const view = foliate(viewRef.current);
+    if (!view?.renderer) return;
+    view.renderer.setStyles?.(getStyles(settings));
+  }, [settings, viewRef]);
 
   useEffect(() => {
     if (isCreated.current) return;
@@ -69,6 +80,7 @@ export function EpubViewer({ localPath, initialCfi, readingMode, viewRef, onRelo
         'flow',
         readingModeRef.current === 'scrolled' ? 'scrolled' : 'paginated',
       );
+      foliate(view).renderer.setStyles?.(getStyles(settingsRef.current));
 
       view.addEventListener('relocate', (e: Event) => {
         const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
