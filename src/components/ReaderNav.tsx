@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Navbar } from 'konsta/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Menu, Settings } from 'lucide-react';
 import type { Book } from '~/types/book';
@@ -7,16 +6,16 @@ import { useReaderStore } from '~/store/readerStore';
 import type { ReadingMode } from '~/store/readerStore';
 import type { ReadingTheme } from '~/types/bookSettings';
 import { themes } from '~/styles/themes';
-
-function callView(viewRef: React.RefObject<HTMLElement | null>, method: string, ...args: unknown[]) {
-  // @ts-expect-error — foliate-view custom element
-  viewRef.current?.[method]?.(...args);
-}
+import type { EpubViewerHandle } from '~/components/EpubViewer';
 
 interface TopNavProps {
   book: Book;
-  viewRef: React.RefObject<HTMLElement | null>;
+  epubRef: React.RefObject<EpubViewerHandle | null>;
   onClose: () => void;
+  tocOpen: boolean;
+  setTocOpen: (v: boolean) => void;
+  settingsOpen: boolean;
+  setSettingsOpen: (v: boolean) => void;
 }
 
 const READING_MODES: { value: ReadingMode; label: string; description: string }[] = [
@@ -140,10 +139,8 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function ReaderTopNav({ book, viewRef, onClose }: TopNavProps) {
+export function ReaderTopNav({ book, epubRef, onClose, tocOpen, setTocOpen, settingsOpen, setSettingsOpen }: TopNavProps) {
   const { toc } = useReaderStore();
-  const [tocOpen, setTocOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
@@ -169,7 +166,7 @@ export function ReaderTopNav({ book, viewRef, onClose }: TopNavProps) {
       {tocOpen && (
         <TableOfContents
           toc={toc}
-          onSelect={(href) => { callView(viewRef, 'goTo', href); setTocOpen(false); }}
+          onSelect={(href) => { epubRef.current?.goTo(href); setTocOpen(false); }}
           onClose={() => setTocOpen(false)}
         />
       )}
@@ -179,19 +176,19 @@ export function ReaderTopNav({ book, viewRef, onClose }: TopNavProps) {
 }
 
 interface BottomNavProps {
-  viewRef: React.RefObject<HTMLElement | null>;
+  epubRef: React.RefObject<EpubViewerHandle | null>;
 }
 
-export function ReaderBottomNav({ viewRef }: BottomNavProps) {
+export function ReaderBottomNav({ epubRef }: BottomNavProps) {
   const { fraction } = useReaderStore();
 
   return (
     <div className="flex items-center min-h-16 px-2 bg-white border-t border-gray-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <button type="button" onClick={() => callView(viewRef, 'prev')} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
+      <button type="button" onClick={() => epubRef.current?.prev()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
         <ChevronLeft size={24} />
       </button>
       <span className="flex-1 text-center text-sm text-[#49454f] font-medium">{Math.round(fraction * 100)}%</span>
-      <button type="button" onClick={() => callView(viewRef, 'next')} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
+      <button type="button" onClick={() => epubRef.current?.next()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
         <ChevronRight size={24} />
       </button>
     </div>

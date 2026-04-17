@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { EpubViewer } from '~/components/EpubViewer';
+import type { EpubViewerHandle } from '~/components/EpubViewer';
 import { ReaderTopNav, ReaderBottomNav } from '~/components/ReaderNav';
 import { useReaderStore } from '~/store/readerStore';
 import { saveProgress, loadProgress, saveBookSettings, loadBookSettings } from '~/services/storageService';
@@ -13,9 +14,16 @@ interface Props {
 export function ReaderScreen({ book, onClose }: Props) {
   const { setCfi, setToc, setLoading, reset, readingMode, bookSettings, setBookSettings } = useReaderStore();
   const [initialCfi, setInitialCfi] = useState<string | null | undefined>(null);
-  const viewRef = useRef<HTMLElement | null>(null);
+  const [tocOpen, setTocOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const tocOpenRef = useRef(false);
+  const settingsOpenRef = useRef(false);
+  const epubRef = useRef<EpubViewerHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const maxFractionRef = useRef(0);
+
+  const setTocOpenSync = useCallback((v: boolean) => { tocOpenRef.current = v; setTocOpen(v); }, []);
+  const setSettingsOpenSync = useCallback((v: boolean) => { settingsOpenRef.current = v; setSettingsOpen(v); }, []);
 
   useEffect(() => {
     reset();
@@ -24,6 +32,23 @@ export function ReaderScreen({ book, onClose }: Props) {
     loadBookSettings(book.id).then(setBookSettings);
     return () => clearTimeout(saveTimer.current);
   }, [book.id, reset, setBookSettings]);
+
+  useEffect(() => {
+    window.history.pushState({ reader: true }, '');
+    const handlePop = () => {
+      if (settingsOpenRef.current) {
+        setSettingsOpenSync(false);
+        window.history.pushState({ reader: true }, '');
+      } else if (tocOpenRef.current) {
+        setTocOpenSync(false);
+        window.history.pushState({ reader: true }, '');
+      } else {
+        onClose();
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [onClose, setTocOpenSync, setSettingsOpenSync]);
 
   useEffect(() => {
     saveBookSettings(book.id, bookSettings);
@@ -53,20 +78,28 @@ export function ReaderScreen({ book, onClose }: Props) {
 
   return (
     <div className="flex flex-col h-[100dvh]">
-      <ReaderTopNav book={book} viewRef={viewRef} onClose={onClose} />
+      <ReaderTopNav
+        book={book}
+        epubRef={epubRef}
+        onClose={onClose}
+        tocOpen={tocOpen}
+        setTocOpen={setTocOpenSync}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpenSync}
+      />
       <div className="flex-1 min-h-0 overflow-hidden">
         <EpubViewer
+          ref={epubRef}
           localPath={book.localPath}
           initialCfi={initialCfi ?? undefined}
           readingMode={readingMode}
           settings={bookSettings}
-          viewRef={viewRef}
           onRelocate={handleRelocate}
           onTocLoad={handleTocLoad}
           onReady={handleReady}
         />
       </div>
-      <ReaderBottomNav viewRef={viewRef} />
+      <ReaderBottomNav epubRef={epubRef} />
     </div>
   );
 }
