@@ -58,10 +58,10 @@ async function makeBookFromPath(localPath: string) {
   return book;
 }
 
-async function extractEpubMetadata(localPath: string): Promise<{ title: string; author: string }> {
+async function extractEpubMetadata(localPath: string): Promise<{ title: string; author: string; description?: string; genres?: string[]; publisher?: string; publishDate?: string }> {
   try {
     const foliateBook = await makeBookFromPath(localPath) as {
-      metadata?: { title?: unknown; author?: unknown }
+      metadata?: { title?: unknown; author?: unknown; description?: unknown; subject?: unknown; publisher?: unknown; published?: unknown; date?: unknown }
       getCover: () => Promise<Blob | null>
     };
     const { metadata } = foliateBook;
@@ -72,9 +72,25 @@ async function extractEpubMetadata(localPath: string): Promise<{ title: string; 
       : rawAuthor && typeof rawAuthor === 'object' && 'name' in rawAuthor
         ? String((rawAuthor as { name: unknown }).name)
         : 'Unknown Author';
+
+    const rawSubject = metadata?.subject;
+    const genres = Array.isArray(rawSubject)
+      ? rawSubject.map(String).filter(Boolean)
+      : typeof rawSubject === 'string' && rawSubject
+        ? [rawSubject]
+        : undefined;
+
     const result = {
       title: typeof metadata?.title === 'string' ? metadata.title : localPath.split('/').pop()?.replace('.epub', '') ?? 'Unknown',
       author,
+      description: typeof metadata?.description === 'string' && metadata.description ? metadata.description : undefined,
+      genres: genres?.length ? genres : undefined,
+      publisher: typeof metadata?.publisher === 'string' && metadata.publisher ? metadata.publisher : undefined,
+      publishDate: typeof metadata?.published === 'string' && metadata.published
+        ? metadata.published
+        : typeof metadata?.date === 'string' && metadata.date
+          ? metadata.date
+          : undefined,
     };
     console.log('[epub-debug] extracted:', JSON.stringify(result));
     return result;

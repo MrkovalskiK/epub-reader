@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Page, Navbar, Fab, Preloader } from "konsta/react";
 import { PlusIcon } from "lucide-react";
 import { useLibraryStore } from "~/store/libraryStore";
 import { BookCard } from "~/components/BookCard";
+import { BookDetailsSheet } from "~/components/BookDetailsSheet";
 import { importEpub, deleteBookFiles } from "~/services/epubService";
 import { deleteBookProgress } from "~/services/storageService";
 import type { Book } from "~/types/book";
@@ -13,6 +14,7 @@ interface Props {
 
 export function LibraryScreen({ onOpenBook }: Props) {
 	const { books, initialized, init, addBook, removeBook } = useLibraryStore();
+	const [detailsBook, setDetailsBook] = useState<Book | null>(null);
 
 	useEffect(() => {
 		if (!initialized) init();
@@ -65,6 +67,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 							book={book}
 							onOpen={() => onOpenBook(book)}
 							onDelete={() => handleDelete(book)}
+							onShowDetails={() => setDetailsBook(book)}
 						/>
 					))}
 				</div>
@@ -74,6 +77,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 				icon={<PlusIcon />}
 				onClick={handleAdd}
 			/>
+			{detailsBook && <BookDetailsSheet book={detailsBook} onClose={() => setDetailsBook(null)} />}
 		</Page>
 	);
 }

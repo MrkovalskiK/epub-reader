@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import { loadFraction } from '~/services/storageService';
 import type { Book } from '~/types/book';
 
@@ -7,9 +7,10 @@ interface Props {
   book: Book;
   onOpen: () => void;
   onDelete: () => void;
+  onShowDetails: () => void;
 }
 
-export function BookCard({ book, onOpen, onDelete }: Props) {
+export function BookCard({ book, onOpen, onDelete, onShowDetails }: Props) {
   const [fraction, setFraction] = useState<number | null>(null);
   const [imgFailed, setImgFailed] = useState(false);
   const prevIdRef = useRef(book.id);
@@ -55,6 +56,13 @@ export function BookCard({ book, onOpen, onDelete }: Props) {
             </div>
           )}
         </div>
+      </button>
+      <button
+        type="button"
+        onClick={onShowDetails}
+        className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[#49454f] active:bg-black/8"
+      >
+        <Info size={18} />
       </button>
       <button
         type="button"

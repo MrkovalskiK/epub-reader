@@ -6,6 +6,10 @@ export interface Book {
   coverPath?: string
   coverImageUrl?: string | null
   addedAt: number
+  description?: string
+  genres?: string[]
+  publisher?: string
+  publishDate?: string
 }
 
 export interface ReadingProgress {
