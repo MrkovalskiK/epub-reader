@@ -1,6 +1,6 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { appDataDir, join } from '@tauri-apps/api/path';
-import { writeFile, mkdir, exists, remove } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, mkdir, exists, remove } from '@tauri-apps/plugin-fs';
 import type { Book } from '~/types/book';
 import { getCoverFilename } from '~/utils/book';
 import { svg2png } from '~/utils/svg2png';
@@ -45,25 +45,41 @@ export async function importEpub(contentUri: string): Promise<Book> {
   return { ...book, coverImageUrl };
 }
 
+async function makeBookFromPath(localPath: string) {
+  console.log('[epub-debug] makeBookFromPath:', localPath);
+  const { makeBook } = await import('foliate-js/view.js');
+  console.log('[epub-debug] readFile start');
+  const bytes = await readFile(localPath);
+  console.log('[epub-debug] readFile done, size:', bytes.byteLength);
+  const file = new File([bytes], 'book.epub', { type: 'application/epub+zip' });
+  console.log('[epub-debug] makeBook start');
+  const book = await makeBook(file as unknown as string);
+  console.log('[epub-debug] makeBook done:', book);
+  return book;
+}
+
 async function extractEpubMetadata(localPath: string): Promise<{ title: string; author: string }> {
   try {
-    const { makeBook } = await import('foliate-js/view.js');
-    const foliateBook = await makeBook(convertFileSrc(localPath)) as {
+    const foliateBook = await makeBookFromPath(localPath) as {
       metadata?: { title?: unknown; author?: unknown }
       getCover: () => Promise<Blob | null>
     };
     const { metadata } = foliateBook;
+    console.log('[epub-debug] metadata:', JSON.stringify(metadata));
     const rawAuthor = metadata?.author;
     const author = typeof rawAuthor === 'string'
       ? rawAuthor
       : rawAuthor && typeof rawAuthor === 'object' && 'name' in rawAuthor
         ? String((rawAuthor as { name: unknown }).name)
         : 'Unknown Author';
-    return {
+    const result = {
       title: typeof metadata?.title === 'string' ? metadata.title : localPath.split('/').pop()?.replace('.epub', '') ?? 'Unknown',
       author,
     };
-  } catch {
+    console.log('[epub-debug] extracted:', JSON.stringify(result));
+    return result;
+  } catch (e) {
+    console.error('[epub-debug] extractEpubMetadata failed:', e);
     return {
       title: localPath.split('/').pop()?.replace('.epub', '') ?? 'Unknown',
       author: 'Unknown Author',
@@ -73,8 +89,7 @@ async function extractEpubMetadata(localPath: string): Promise<{ title: string; 
 
 async function saveCover(book: Book, localPath: string): Promise<void> {
   try {
-    const { makeBook } = await import('foliate-js/view.js');
-    const foliateBook = await makeBook(convertFileSrc(localPath)) as {
+    const foliateBook = await makeBookFromPath(localPath) as {
       metadata?: { title?: unknown; author?: unknown }
       resources?: {
         cover?: { href?: string; mediaType?: string; id?: string } | null

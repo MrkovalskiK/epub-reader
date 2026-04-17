@@ -6,11 +6,10 @@ import type { Book } from '~/types/book';
 interface Props {
   book: Book;
   onOpen: () => void;
-  onLongPress: () => void;
   onDelete: () => void;
 }
 
-export function BookCard({ book, onOpen, onLongPress, onDelete }: Props) {
+export function BookCard({ book, onOpen, onDelete }: Props) {
   const [fraction, setFraction] = useState<number | null>(null);
   const [imgFailed, setImgFailed] = useState(false);
   const prevIdRef = useRef(book.id);
@@ -18,24 +17,10 @@ export function BookCard({ book, onOpen, onLongPress, onDelete }: Props) {
     prevIdRef.current = book.id;
     setImgFailed(false);
   }
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadFraction(book.id).then(setFraction);
   }, [book.id]);
-
-  const startLongPress = () => {
-    longPressTimer.current = setTimeout(() => {
-      onLongPress();
-    }, 500);
-  };
-
-  const cancelLongPress = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
 
   const percent = fraction !== null ? Math.round(fraction * 100) : null;
 
@@ -44,11 +29,6 @@ export function BookCard({ book, onOpen, onLongPress, onDelete }: Props) {
       <button
         type="button"
         onClick={onOpen}
-        onPointerDown={startLongPress}
-        onPointerUp={cancelLongPress}
-        onPointerLeave={cancelLongPress}
-        onPointerCancel={cancelLongPress}
-        onContextMenu={(e) => { e.preventDefault(); cancelLongPress(); onLongPress(); }}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
       >
         <div className="w-[72px] shrink-0 aspect-[2/3] bg-[#d0bcff]/30 rounded-xl overflow-hidden flex items-center justify-center">
