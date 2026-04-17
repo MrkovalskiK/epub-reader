@@ -37,6 +37,7 @@ interface AppStore {
   updateProgress: (id: string, cfi: string, index: number, total: number) => void;
   updateSettings: (patch: Partial<ReaderSettings>) => void;
   removeBook: (id: string) => void;
+  relinkBook: (id: string, newPath: string) => void;
 }
 
 export function generateBookId(_path: string): string {
@@ -58,10 +59,12 @@ export const useStore = create<AppStore>((set) => ({
 
   openBook: (id) => {
     set({ currentBookId: id });
+    persistStore();
   },
 
   closeBook: () => {
     set({ currentBookId: null });
+    persistStore();
   },
 
   updateProgress: (id, cfi, index, total) => {
@@ -91,6 +94,13 @@ export const useStore = create<AppStore>((set) => ({
     set((s) => ({
       library: s.library.filter((b) => b.id !== id),
       currentBookId: s.currentBookId === id ? null : s.currentBookId,
+    }));
+    persistStore();
+  },
+
+  relinkBook: (id, newPath) => {
+    set((s) => ({
+      library: s.library.map((b) => b.id === id ? { ...b, path: newPath } : b),
     }));
     persistStore();
   },

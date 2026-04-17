@@ -821,7 +821,9 @@ dependencies = [
 name = "epub-reader"
 version = "0.1.0"
 dependencies = [
+ "jni",
  "log",
+ "ndk-context",
  "serde",
  "serde_json",
  "tauri",

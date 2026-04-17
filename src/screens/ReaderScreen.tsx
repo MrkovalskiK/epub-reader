@@ -6,10 +6,10 @@ import { SettingsSheet } from '../components/SettingsSheet';
 import { ErrorBlock } from '../components/ErrorBlock';
 import { useStore } from '../store/index';
 import { useEpub } from '../hooks/useEpub';
-import { readEpubFile } from '../services/tauri';
+import { pickEpubFile, readEpubFile } from '../services/tauri';
 
 export function ReaderScreen() {
-  const { library, currentBookId, readerSettings, closeBook, updateProgress, updateSettings, removeBook } = useStore();
+  const { library, currentBookId, readerSettings, closeBook, updateProgress, updateSettings, removeBook, relinkBook } = useStore();
   const book = library.find((b) => b.id === currentBookId);
 
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
@@ -20,10 +20,27 @@ export function ReaderScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chapterTitle, setChapterTitle] = useState('');
 
+  const [isRelinking, setIsRelinking] = useState(false);
   const viewerRef = useRef<EpubViewerHandle>(null);
   const progressRef = useRef(0);
 
   const { book: epubBook, toc, status } = useEpub(buffer);
+
+  const handleRelink = async () => {
+    if (!book) return;
+    setIsRelinking(true);
+    try {
+      const newPath = await pickEpubFile();
+      if (newPath) {
+        relinkBook(book.id, newPath);
+        setFileError(null);
+      }
+    } catch (e) {
+      console.error('relink failed:', e);
+    } finally {
+      setIsRelinking(false);
+    }
+  };
 
   // Load file when the opened book path changes (not on every store update)
   useEffect(() => {
@@ -96,8 +113,9 @@ export function ReaderScreen() {
           title="Ошибка"
         />
         <ErrorBlock
-          message="Файл недоступен. Переместите EPUB обратно или удалите книгу из библиотеки."
+          message={isRelinking ? 'Выбор файла...' : 'Файл недоступен. Выберите файл заново или удалите книгу.'}
           onBack={closeBook}
+          onRelink={handleRelink}
           onRemove={() => {
             removeBook(book.id);
             closeBook();
