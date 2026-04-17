@@ -12,10 +12,19 @@
   "app": {
     "windows": [{ "title": "EPUB Reader", "width": 480, "height": 860 }],
     "security": {
-      "csp": "default-src 'self' tauri: asset: 'unsafe-inline' 'unsafe-eval' data: blob:",
+      "csp": {
+        "default-src": "'self' 'unsafe-inline' 'unsafe-eval' asset: http://asset.localhost ipc: http://ipc.localhost blob: data:",
+        "connect-src": "'self' asset: http://asset.localhost ipc: http://ipc.localhost blob: data:",
+        "img-src": "'self' asset: http://asset.localhost blob: data:",
+        "frame-src": "'self' asset: http://asset.localhost blob:",
+        "script-src": "'self' 'unsafe-inline' 'unsafe-eval' asset: http://asset.localhost blob:"
+      },
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/**", "$TEMP/**"]
+        "scope": {
+          "allow": ["$APPDATA/**/*", "$TEMP/**/*"],
+          "deny": []
+        }
       }
     }
   },
