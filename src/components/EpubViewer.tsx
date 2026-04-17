@@ -47,6 +47,7 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
   const spineIndexRef = useRef(-1);
   const spineSizeRef = useRef(0);
   const emptySpineIndicesRef = useRef(new Set<number>());
+  const isAtChapterEndRef = useRef(true);
 
   onRelocateRef.current = onRelocate;
   onTocLoadRef.current = onTocLoad;
@@ -69,16 +70,18 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
       }
     },
     next: () => {
+      if (!isAtChapterEndRef.current) {
+        foliate(viewRef.current)?.renderer.next();
+        return;
+      }
       let nextIdx = spineIndexRef.current + 1;
       while (nextIdx < spineSizeRef.current && emptySpineIndicesRef.current.has(nextIdx)) nextIdx++;
       if (nextIdx >= spineSizeRef.current) return;
-      if (nextIdx === spineIndexRef.current + 1) {
-        foliate(viewRef.current)?.renderer.next();
-      } else {
+      if (nextIdx > spineIndexRef.current + 1) {
         const href = foliate(viewRef.current)?.book?.sections?.[nextIdx]?.href;
-        if (href) foliate(viewRef.current)?.goTo(href).catch(console.error);
-        else foliate(viewRef.current)?.renderer.next();
+        if (href) { foliate(viewRef.current)?.goTo(href).catch(console.error); return; }
       }
+      foliate(viewRef.current)?.renderer.next();
     },
   }));
 
@@ -124,7 +127,8 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
       foliate(view).renderer.setStyles?.(getStyles(settingsRef.current));
 
       view.addEventListener('relocate', (e: Event) => {
-        const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
+        const { cfi, fraction, location } = (e as CustomEvent<RelocateDetail>).detail;
+        isAtChapterEndRef.current = !location || location.next >= location.total;
         const match = cfi.match(/^epubcfi\(\/6\/(\d+)/);
         const cfiSection = match ? parseInt(match[1], 10) / 2 - 1 : -1;
         if (cfiSection !== spineIndexRef.current) return;
