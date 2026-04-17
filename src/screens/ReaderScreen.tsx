@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function ReaderScreen({ book, onClose }: Props) {
-  const { setCfi, setToc, setLoading, setEmptyPage, reset, readingMode, bookSettings, setBookSettings, isLoading } = useReaderStore();
+  const { setCfi, setToc, setLoading, reset, readingMode, bookSettings, setBookSettings, isLoading } = useReaderStore();
   const [initialCfi, setInitialCfi] = useState<string | null | undefined>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -93,7 +93,6 @@ export function ReaderScreen({ book, onClose }: Props) {
           onRelocate={handleRelocate}
           onTocLoad={handleTocLoad}
           onReady={handleReady}
-          onEmptyPage={setEmptyPage}
         />
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">

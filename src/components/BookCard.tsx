@@ -23,7 +23,7 @@ export function BookCard({ book, onOpen, onDelete, onShowDetails }: Props) {
     loadFraction(book.id).then(setFraction);
   }, [book.id]);
 
-  const percent = fraction !== null ? Math.min(100, Math.max(0, Math.round(fraction * 100))) : null;
+  const percent = fraction !== null ? Math.round(fraction * 100) : null;
 
   return (
     <div className="w-full flex items-center gap-3 px-3 py-2 active:bg-black/5 transition-colors">

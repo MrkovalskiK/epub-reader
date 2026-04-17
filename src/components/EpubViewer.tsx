@@ -21,7 +21,6 @@ interface Props {
   onRelocate: (cfi: string, fraction: number) => void;
   onTocLoad: (toc: TOCItem[]) => void;
   onReady: () => void;
-  onEmptyPage: (empty: boolean) => void;
 }
 
 export interface EpubViewerHandle {
@@ -34,17 +33,15 @@ export interface EpubViewerHandle {
 const foliate = (el: HTMLElement | null): any => el;
 
 export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewer(
-  { localPath, initialCfi, readingMode, settings, onRelocate, onTocLoad, onReady, onEmptyPage },
+  { localPath, initialCfi, readingMode, settings, onRelocate, onTocLoad, onReady },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isChapterLoading, setIsChapterLoading] = useState(false);
-  const [isEmptyPage, setIsEmptyPage] = useState(false);
   const viewRef = useRef<HTMLElement | null>(null);
   const onRelocateRef = useRef(onRelocate);
   const onTocLoadRef = useRef(onTocLoad);
   const onReadyRef = useRef(onReady);
-  const onEmptyPageRef = useRef(onEmptyPage);
   const readingModeRef = useRef(readingMode);
   const settingsRef = useRef(settings);
   const spineIndexRef = useRef(-1);
@@ -54,20 +51,34 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
   onRelocateRef.current = onRelocate;
   onTocLoadRef.current = onTocLoad;
   onReadyRef.current = onReady;
-  onEmptyPageRef.current = onEmptyPage;
   readingModeRef.current = readingMode;
   settingsRef.current = settings;
 
   useImperativeHandle(ref, () => ({
     goTo: (href) => foliate(viewRef.current)?.goTo(href).catch(console.error),
     prev: () => {
-      if (spineIndexRef.current > 0) foliate(viewRef.current)?.renderer.prev();
+      let prevIdx = spineIndexRef.current - 1;
+      while (prevIdx >= 0 && emptySpineIndicesRef.current.has(prevIdx)) prevIdx--;
+      if (prevIdx < 0) return;
+      if (prevIdx === spineIndexRef.current - 1) {
+        foliate(viewRef.current)?.renderer.prev();
+      } else {
+        const href = foliate(viewRef.current)?.book?.sections?.[prevIdx]?.href;
+        if (href) foliate(viewRef.current)?.goTo(href).catch(console.error);
+        else foliate(viewRef.current)?.renderer.prev();
+      }
     },
     next: () => {
-      const nextIdx = spineIndexRef.current + 1;
+      let nextIdx = spineIndexRef.current + 1;
+      while (nextIdx < spineSizeRef.current && emptySpineIndicesRef.current.has(nextIdx)) nextIdx++;
       if (nextIdx >= spineSizeRef.current) return;
-      if (emptySpineIndicesRef.current.has(nextIdx)) return;
-      foliate(viewRef.current)?.renderer.next();
+      if (nextIdx === spineIndexRef.current + 1) {
+        foliate(viewRef.current)?.renderer.next();
+      } else {
+        const href = foliate(viewRef.current)?.book?.sections?.[nextIdx]?.href;
+        if (href) foliate(viewRef.current)?.goTo(href).catch(console.error);
+        else foliate(viewRef.current)?.renderer.next();
+      }
     },
   }));
 
@@ -116,18 +127,13 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
         const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
         const match = cfi.match(/^epubcfi\(\/6\/(\d+)/);
         const cfiSection = match ? parseInt(match[1], 10) / 2 - 1 : -1;
-        const clamped = Number.isFinite(fraction) ? Math.min(1, Math.max(0, fraction)) : 0;
         if (cfiSection !== spineIndexRef.current) return;
-        onRelocateRef.current(cfi, clamped);
+        if (emptySpineIndicesRef.current.has(cfiSection)) return;
+        onRelocateRef.current(cfi, Number.isFinite(fraction) ? fraction : 0);
       });
 
-      let loadIsForNavigation = false;
-
       view.addEventListener('index-change', () => {
-        loadIsForNavigation = true;
         setIsChapterLoading(true);
-        setIsEmptyPage(false);
-        onEmptyPageRef.current(false);
       });
 
       view.addEventListener('load', (e: Event) => {
@@ -146,14 +152,8 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
           }
         }
 
-        const wasNavigated = loadIsForNavigation || spineIndexRef.current === -1;
-        loadIsForNavigation = false;
+        spineIndexRef.current = index;
 
-        if (wasNavigated) {
-          spineIndexRef.current = index;
-          setIsEmptyPage(empty);
-          onEmptyPageRef.current(empty);
-        }
         setIsChapterLoading(false);
       });
 
@@ -192,12 +192,6 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
       {isChapterLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
           <Preloader />
-        </div>
-      )}
-      {isEmptyPage && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white gap-2">
-          <span className="text-4xl text-gray-300">—</span>
-          <span className="text-sm text-gray-400">Страница пустая</span>
         </div>
       )}
     </div>
