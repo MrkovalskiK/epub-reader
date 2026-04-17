@@ -10,7 +10,7 @@ const bookSettingsStore = new LazyStore('book-settings.json');
 export async function saveProgress(
   bookId: string, cfi: string, fraction: number
 ): Promise<void> {
-  await progressStore.set(bookId, { bookId, cfi, fraction, updatedAt: Date.now() });
+  await progressStore.set(bookId, { bookId, cfi, fraction: Math.min(1, Math.max(0, fraction)), updatedAt: Date.now() });
   await progressStore.save();
 }
 
@@ -21,7 +21,8 @@ export async function loadProgress(bookId: string): Promise<string | null> {
 
 export async function loadFraction(bookId: string): Promise<number | null> {
   const data = await progressStore.get<ReadingProgress>(bookId);
-  return data?.fraction ?? null;
+  const f = data?.fraction ?? null;
+  return f !== null ? Math.min(1, Math.max(0, f)) : null;
 }
 
 export async function deleteBookProgress(bookId: string): Promise<void> {

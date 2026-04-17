@@ -1,6 +1,6 @@
 import { Navbar } from 'konsta/react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Menu, Settings } from 'lucide-react';
-import type { Book } from '~/types/book';
+import type { Book, TOCItem } from '~/types/book';
 import { TableOfContents } from '~/components/TableOfContents';
 import { useReaderStore } from '~/store/readerStore';
 import type { ReadingMode } from '~/store/readerStore';
@@ -139,8 +139,23 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+function findDuplicateHrefs(toc: TOCItem[]): Set<string> {
+  const counts = new Map<string, number>();
+  const walk = (items: TOCItem[]) => {
+    for (const item of items) {
+      counts.set(item.href, (counts.get(item.href) ?? 0) + 1);
+      if (item.subitems) walk(item.subitems);
+    }
+  };
+  walk(toc);
+  const dupes = new Set<string>();
+  for (const [href, count] of counts) if (count > 1) dupes.add(href);
+  return dupes;
+}
+
 export function ReaderTopNav({ book, epubRef, onClose, tocOpen, setTocOpen, settingsOpen, setSettingsOpen }: TopNavProps) {
   const { toc } = useReaderStore();
+  const stubHrefs = findDuplicateHrefs(toc);
 
   return (
     <>
@@ -166,6 +181,7 @@ export function ReaderTopNav({ book, epubRef, onClose, tocOpen, setTocOpen, sett
       {tocOpen && (
         <TableOfContents
           toc={toc}
+          stubHrefs={stubHrefs}
           onSelect={(href) => { epubRef.current?.goTo(href); setTocOpen(false); }}
           onClose={() => setTocOpen(false)}
         />
@@ -180,14 +196,16 @@ interface BottomNavProps {
 }
 
 export function ReaderBottomNav({ epubRef }: BottomNavProps) {
-  const { fraction } = useReaderStore();
+  const { fraction, isEmptyPage } = useReaderStore();
 
   return (
     <div className="flex items-center min-h-16 px-2 bg-white border-t border-gray-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <button type="button" onClick={() => epubRef.current?.prev()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
         <ChevronLeft size={24} />
       </button>
-      <span className="flex-1 text-center text-sm text-[#49454f] font-medium">{Math.round(fraction * 100)}%</span>
+      <span className="flex-1 text-center text-sm text-[#49454f] font-medium">
+        {!isEmptyPage && `${Math.round(fraction * 100)}%`}
+      </span>
       <button type="button" onClick={() => epubRef.current?.next()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
         <ChevronRight size={24} />
       </button>

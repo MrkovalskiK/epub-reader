@@ -2,23 +2,32 @@ import type { TOCItem } from '~/types/book';
 
 interface Props {
   toc: TOCItem[];
+  stubHrefs: Set<string>;
   onSelect: (href: string) => void;
   onClose: () => void;
 }
 
-function TocEntry({ item, onSelect, isSubItem = false }: { item: TOCItem; onSelect: (href: string) => void; isSubItem?: boolean }) {
+function TocEntry({ item, stubHrefs, onSelect, isSubItem = false }: { item: TOCItem; stubHrefs: Set<string>; onSelect: (href: string) => void; isSubItem?: boolean }) {
+  const isStub = stubHrefs.has(item.href);
   return (
     <li>
       <button
-        onClick={() => onSelect(item.href)}
-        className={`w-full text-left px-6 py-3 text-[14px] active:bg-[#6750a4]/8 ${isSubItem ? 'text-[#49454f]' : 'text-[#1c1b1f]'}`}
+        onClick={() => !isStub && onSelect(item.href)}
+        disabled={isStub}
+        className={`w-full text-left px-6 py-3 text-[14px] ${
+          isStub
+            ? 'text-[#c4c4c4] cursor-default'
+            : isSubItem
+            ? 'text-[#49454f] active:bg-[#6750a4]/8'
+            : 'text-[#1c1b1f] active:bg-[#6750a4]/8'
+        }`}
       >
         {item.label}
       </button>
       {item.subitems && item.subitems.length > 0 && (
         <ul className="pl-4">
           {item.subitems.map((sub, i) => (
-            <TocEntry key={i} item={sub} onSelect={onSelect} isSubItem />
+            <TocEntry key={i} item={sub} stubHrefs={stubHrefs} onSelect={onSelect} isSubItem />
           ))}
         </ul>
       )}
@@ -26,7 +35,7 @@ function TocEntry({ item, onSelect, isSubItem = false }: { item: TOCItem; onSele
   );
 }
 
-export function TableOfContents({ toc, onSelect, onClose }: Props) {
+export function TableOfContents({ toc, stubHrefs, onSelect, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()} aria-label="Close" />
@@ -37,7 +46,7 @@ export function TableOfContents({ toc, onSelect, onClose }: Props) {
         </div>
         <ul className="flex-1 overflow-y-auto py-2">
           {toc.map((item, i) => (
-            <TocEntry key={i} item={item} onSelect={onSelect} />
+            <TocEntry key={i} item={item} stubHrefs={stubHrefs} onSelect={onSelect} />
           ))}
         </ul>
       </div>

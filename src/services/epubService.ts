@@ -46,15 +46,10 @@ export async function importEpub(contentUri: string): Promise<Book> {
 }
 
 async function makeBookFromPath(localPath: string) {
-  console.log('[epub-debug] makeBookFromPath:', localPath);
   const { makeBook } = await import('foliate-js/view.js');
-  console.log('[epub-debug] readFile start');
   const bytes = await readFile(localPath);
-  console.log('[epub-debug] readFile done, size:', bytes.byteLength);
   const file = new File([bytes], 'book.epub', { type: 'application/epub+zip' });
-  console.log('[epub-debug] makeBook start');
   const book = await makeBook(file as unknown as string);
-  console.log('[epub-debug] makeBook done:', book);
   return book;
 }
 
@@ -65,7 +60,6 @@ async function extractEpubMetadata(localPath: string): Promise<{ title: string; 
       getCover: () => Promise<Blob | null>
     };
     const { metadata } = foliateBook;
-    console.log('[epub-debug] metadata:', JSON.stringify(metadata));
     const rawAuthor = metadata?.author;
     const author = typeof rawAuthor === 'string'
       ? rawAuthor
@@ -92,7 +86,6 @@ async function extractEpubMetadata(localPath: string): Promise<{ title: string; 
           ? metadata.date
           : undefined,
     };
-    console.log('[epub-debug] extracted:', JSON.stringify(result));
     return result;
   } catch (e) {
     console.error('[epub-debug] extractEpubMetadata failed:', e);
@@ -114,11 +107,6 @@ async function saveCover(book: Book, localPath: string): Promise<void> {
       getCover: () => Promise<Blob | null>
     };
 
-    console.log('[cover-debug] resources:', foliateBook.resources);
-    console.log('[cover-debug] manifest ids+types:', foliateBook.resources?.manifest?.map(i => [i.id, i.mediaType]));
-    console.log('[cover-debug] resources.cover:', foliateBook.resources?.cover);
-    console.log('[cover-debug] cover href:', foliateBook.resources?.cover?.href);
-
     let cover: Blob | null = null;
     try {
       cover = await foliateBook.getCover();
@@ -126,7 +114,6 @@ async function saveCover(book: Book, localPath: string): Promise<void> {
       console.error('[cover-debug] getCover threw:', e);
       return;
     }
-    console.log('[cover-debug] blob:', cover, 'type:', cover?.type, 'size:', cover?.size);
     if (!cover) return;
 
     if (cover.type === 'image/svg+xml') {
@@ -142,7 +129,6 @@ async function saveCover(book: Book, localPath: string): Promise<void> {
     const coverPath = await join(dataDir, 'books', getCoverFilename(book));
     const bytes = new Uint8Array(await cover.arrayBuffer());
     await writeFile(coverPath, bytes);
-    console.log('[cover-debug] cover saved to:', coverPath);
   } catch (e) {
     console.error('[cover-debug] saveCover failed:', e);
   }
