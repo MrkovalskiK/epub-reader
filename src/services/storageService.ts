@@ -24,6 +24,13 @@ export async function loadFraction(bookId: string): Promise<number | null> {
   return data?.fraction ?? null;
 }
 
+export async function deleteBookProgress(bookId: string): Promise<void> {
+  await progressStore.delete(bookId);
+  await progressStore.save();
+  await bookSettingsStore.delete(bookId);
+  await bookSettingsStore.save();
+}
+
 export async function saveLibrary(books: Book[]): Promise<void> {
   await libraryStore.set('books', books);
   await libraryStore.save();

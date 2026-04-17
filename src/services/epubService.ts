@@ -1,6 +1,6 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { appDataDir, join } from '@tauri-apps/api/path';
-import { writeFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { writeFile, mkdir, exists, remove } from '@tauri-apps/plugin-fs';
 import type { Book } from '~/types/book';
 import { getCoverFilename } from '~/utils/book';
 import { svg2png } from '~/utils/svg2png';
@@ -10,6 +10,14 @@ async function sha256(str: string): Promise<string> {
   return Array.from(new Uint8Array(buf))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+export async function deleteBookFiles(book: Book): Promise<void> {
+  const dataDir = await appDataDir();
+  const epubPath = await join(dataDir, 'books', `${book.id}.epub`);
+  const coverDir = await join(dataDir, 'books', book.id);
+  if (await exists(epubPath)) await remove(epubPath);
+  if (await exists(coverDir)) await remove(coverDir, { recursive: true });
 }
 
 export async function generateCoverImageUrl(book: Book): Promise<string | null> {

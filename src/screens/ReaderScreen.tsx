@@ -20,14 +20,12 @@ export function ReaderScreen({ book, onClose }: Props) {
   const settingsOpenRef = useRef(false);
   const epubRef = useRef<EpubViewerHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const maxFractionRef = useRef(0);
 
   const setTocOpenSync = useCallback((v: boolean) => { tocOpenRef.current = v; setTocOpen(v); }, []);
   const setSettingsOpenSync = useCallback((v: boolean) => { settingsOpenRef.current = v; setSettingsOpen(v); }, []);
 
   useEffect(() => {
     reset();
-    maxFractionRef.current = 0;
     loadProgress(book.id).then(cfi => setInitialCfi(cfi ?? undefined));
     loadBookSettings(book.id).then(setBookSettings);
     return () => clearTimeout(saveTimer.current);
@@ -56,9 +54,6 @@ export function ReaderScreen({ book, onClose }: Props) {
 
   const handleRelocate = useCallback((cfi: string, fraction: number) => {
     setCfi(cfi, fraction);
-    // Only persist progress when moving forward — prevents backward navigation from regressing saved position
-    if (fraction <= maxFractionRef.current) return;
-    maxFractionRef.current = fraction;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveProgress(book.id, cfi, fraction);
@@ -71,7 +66,7 @@ export function ReaderScreen({ book, onClose }: Props) {
   if (initialCfi === null) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-white">
-        <span className="text-gray-400">Opening…</span>
+        <span className="text-gray-400">Открытие…</span>
       </div>
     );
   }

@@ -4,7 +4,8 @@ import { PlusIcon } from "lucide-react";
 import { useLibraryStore } from "~/store/libraryStore";
 import { BookCard } from "~/components/BookCard";
 import { BookActionSheet } from "~/components/BookActionSheet";
-import { importEpub } from "~/services/epubService";
+import { importEpub, deleteBookFiles } from "~/services/epubService";
+import { deleteBookProgress } from "~/services/storageService";
 import type { Book } from "~/types/book";
 
 interface Props {
@@ -12,12 +13,21 @@ interface Props {
 }
 
 export function LibraryScreen({ onOpenBook }: Props) {
-	const { books, initialized, init, addBook } = useLibraryStore();
+	const { books, initialized, init, addBook, removeBook } = useLibraryStore();
 	const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
 	useEffect(() => {
 		if (!initialized) init();
 	}, [initialized, init]);
+
+	const handleDelete = async (book: Book) => {
+		const { ask } = await import("@tauri-apps/plugin-dialog");
+		const confirmed = await ask(`Удалить «${book.title}»?`, { title: "Удаление книги", kind: "warning" });
+		if (!confirmed) return;
+		await deleteBookFiles(book);
+		await deleteBookProgress(book.id);
+		await removeBook(book.id);
+	};
 
 	const handleAdd = async () => {
 		const { open } = await import("@tauri-apps/plugin-dialog");
@@ -57,6 +67,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 							book={book}
 							onOpen={() => onOpenBook(book)}
 							onLongPress={() => setSelectedBook(book)}
+							onDelete={() => handleDelete(book)}
 						/>
 					))}
 				</div>

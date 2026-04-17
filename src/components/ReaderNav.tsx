@@ -19,14 +19,14 @@ interface TopNavProps {
 }
 
 const READING_MODES: { value: ReadingMode; label: string; description: string }[] = [
-  { value: 'paginated', label: 'Paginated', description: 'Flip through pages' },
-  { value: 'scrolled',  label: 'Scrolling', description: 'Continuous scroll' },
+  { value: 'paginated', label: 'Постраничный', description: 'Перелистывание страниц' },
+  { value: 'scrolled',  label: 'Прокрутка',    description: 'Непрерывная прокрутка'  },
 ];
 
 const THEMES: { value: ReadingTheme; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark',  label: 'Dark'  },
-  { value: 'sepia', label: 'Sepia' },
+  { value: 'light', label: 'Светлая' },
+  { value: 'dark',  label: 'Тёмная'  },
+  { value: 'sepia', label: 'Сепия'   },
 ];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -43,14 +43,14 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
       <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="Close" />
       <div className="relative w-[85vw] max-w-xs h-full bg-[#fffbfe] shadow-2xl flex flex-col">
         <div className="h-16 flex items-center px-6 flex-shrink-0">
-          <span className="text-lg font-medium text-[#1c1b1f] flex-1">Settings</span>
+          <span className="text-lg font-medium text-[#1c1b1f] flex-1">Настройки</span>
           <button type="button" onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f] text-2xl">×</button>
         </div>
         <div className="flex-1 overflow-y-auto py-2 space-y-6">
 
           {/* Theme */}
           <div className="px-6">
-            <SectionLabel>Theme</SectionLabel>
+            <SectionLabel>Тема</SectionLabel>
             <div className="flex gap-2">
               {THEMES.map(({ value, label }) => {
                 const palette = themes[value];
@@ -73,7 +73,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
 
           {/* Font */}
           <div className="px-6">
-            <SectionLabel>Font</SectionLabel>
+            <SectionLabel>Шрифт</SectionLabel>
             <div className="flex gap-2 mb-4">
               {(['Serif', 'Sans-serif'] as const).map((f) => (
                 <button
@@ -85,11 +85,11 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
                   }`}
                   style={{ fontFamily: f === 'Serif' ? 'Georgia, serif' : 'Arial, sans-serif' }}
                 >
-                  {f}
+                  {f === 'Serif' ? 'С засечками' : 'Без засечек'}
                 </button>
               ))}
             </div>
-            <SectionLabel>Font Size</SectionLabel>
+            <SectionLabel>Размер шрифта</SectionLabel>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => update({ defaultFontSize: Math.max(10, s.defaultFontSize - 1) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
               <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.defaultFontSize}px</span>
@@ -99,13 +99,13 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
 
           {/* Text */}
           <div className="px-6">
-            <SectionLabel>Line Height</SectionLabel>
+            <SectionLabel>Межстрочный интервал</SectionLabel>
             <div className="flex items-center gap-3 mb-4">
               <button type="button" onClick={() => update({ lineHeight: Math.max(1, +(s.lineHeight - 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
               <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.lineHeight.toFixed(1)}</span>
               <button type="button" onClick={() => update({ lineHeight: Math.min(3, +(s.lineHeight + 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
             </div>
-            <SectionLabel>Paragraph Margin</SectionLabel>
+            <SectionLabel>Отступ абзаца</SectionLabel>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => update({ paragraphMargin: Math.max(0, +(s.paragraphMargin - 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
               <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.paragraphMargin.toFixed(1)}em</span>
@@ -115,7 +115,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
 
           {/* Reading Mode */}
           <div className="px-6 pb-4">
-            <SectionLabel>Reading Mode</SectionLabel>
+            <SectionLabel>Режим чтения</SectionLabel>
             {READING_MODES.map(({ value, label, description }) => (
               <button
                 key={value}
