@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { Preloader } from 'konsta/react';
 import { EpubViewer } from '~/components/EpubViewer';
 import type { EpubViewerHandle } from '~/components/EpubViewer';
 import { ReaderTopNav, ReaderBottomNav } from '~/components/ReaderNav';
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export function ReaderScreen({ book, onClose }: Props) {
-  const { setCfi, setToc, setLoading, reset, readingMode, bookSettings, setBookSettings } = useReaderStore();
+  const { setCfi, setToc, setLoading, reset, readingMode, bookSettings, setBookSettings, isLoading } = useReaderStore();
   const [initialCfi, setInitialCfi] = useState<string | null | undefined>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -82,7 +83,7 @@ export function ReaderScreen({ book, onClose }: Props) {
         settingsOpen={settingsOpen}
         setSettingsOpen={setSettingsOpenSync}
       />
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         <EpubViewer
           ref={epubRef}
           localPath={book.localPath}
@@ -93,6 +94,11 @@ export function ReaderScreen({ book, onClose }: Props) {
           onTocLoad={handleTocLoad}
           onReady={handleReady}
         />
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+            <Preloader />
+          </div>
+        )}
       </div>
       <ReaderBottomNav epubRef={epubRef} />
     </div>

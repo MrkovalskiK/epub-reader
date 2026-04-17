@@ -15,6 +15,7 @@ interface Props {
 export function LibraryScreen({ onOpenBook }: Props) {
 	const { books, initialized, init, addBook, removeBook } = useLibraryStore();
 	const [detailsBook, setDetailsBook] = useState<Book | null>(null);
+	const [isImporting, setIsImporting] = useState(false);
 
 	useEffect(() => {
 		if (!initialized) init();
@@ -36,6 +37,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			filters: [{ name: "EPUB", extensions: ["epub"] }],
 		});
 		if (!selected) return;
+		setIsImporting(true);
 		try {
 			const book = await importEpub(selected as string);
 			await addBook(book);
@@ -43,6 +45,8 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			alert(
 				`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`,
 			);
+		} finally {
+			setIsImporting(false);
 		}
 	};
 
@@ -72,8 +76,14 @@ export function LibraryScreen({ onOpenBook }: Props) {
 					))}
 				</div>
 			)}
+			{isImporting && (
+				<div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 gap-4">
+					<Preloader />
+					<p className="text-sm text-[#49454f]">Импорт книги…</p>
+				</div>
+			)}
 			<Fab
-				className="fixed bottom-6 right-4 z-10"
+				className={`fixed bottom-6 right-4 z-10${isImporting ? " pointer-events-none opacity-50" : ""}`}
 				icon={<PlusIcon />}
 				onClick={handleAdd}
 			/>

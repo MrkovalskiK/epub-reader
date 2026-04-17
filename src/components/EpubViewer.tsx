@@ -1,4 +1,5 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { Preloader } from 'konsta/react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { TOCItem } from '~/types/book';
 import type { ReadingMode } from '~/store/readerStore';
@@ -36,6 +37,7 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isChapterLoading, setIsChapterLoading] = useState(false);
   const viewRef = useRef<HTMLElement | null>(null);
   const onRelocateRef = useRef(onRelocate);
   const onTocLoadRef = useRef(onTocLoad);
@@ -97,6 +99,9 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
         onRelocateRef.current(cfi, Number.isFinite(fraction) ? fraction : 0);
       });
 
+      view.addEventListener('index-change', () => setIsChapterLoading(true));
+      view.addEventListener('load', () => setIsChapterLoading(false));
+
       onTocLoadRef.current(foliate(view).book?.toc ?? []);
 
       if (initialCfi) {
@@ -125,5 +130,14 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localPath]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return (
+    <div className="w-full h-full relative">
+      <div ref={containerRef} className="w-full h-full" />
+      {isChapterLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+          <Preloader />
+        </div>
+      )}
+    </div>
+  );
 });
