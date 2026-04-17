@@ -11,19 +11,24 @@ interface Props {
 }
 
 export function ReaderScreen({ book, onClose }: Props) {
-  const { setCfi, setToc, setLoading, reset } = useReaderStore();
+  const { setCfi, setToc, setLoading, reset, readingMode } = useReaderStore();
   const [initialCfi, setInitialCfi] = useState<string | null | undefined>(null);
   const viewRef = useRef<HTMLElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const maxFractionRef = useRef(0);
 
   useEffect(() => {
     reset();
+    maxFractionRef.current = 0;
     loadProgress(book.id).then(cfi => setInitialCfi(cfi ?? undefined));
     return () => clearTimeout(saveTimer.current);
   }, [book.id, reset]);
 
   const handleRelocate = useCallback((cfi: string, fraction: number) => {
     setCfi(cfi, fraction);
+    // Only persist progress when moving forward — prevents backward navigation from regressing saved position
+    if (fraction <= maxFractionRef.current) return;
+    maxFractionRef.current = fraction;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveProgress(book.id, cfi, fraction);
@@ -48,6 +53,7 @@ export function ReaderScreen({ book, onClose }: Props) {
         <EpubViewer
           localPath={book.localPath}
           initialCfi={initialCfi ?? undefined}
+          readingMode={readingMode}
           viewRef={viewRef}
           onRelocate={handleRelocate}
           onTocLoad={handleTocLoad}

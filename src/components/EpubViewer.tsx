@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { TOCItem } from '~/types/book';
+import type { ReadingMode } from '~/store/readerStore';
 
 interface RelocateDetail {
   cfi: string;
@@ -12,23 +13,42 @@ interface RelocateDetail {
 interface Props {
   localPath: string;
   initialCfi: string | undefined;
+  readingMode: ReadingMode;
   viewRef: React.RefObject<HTMLElement | null>;
   onRelocate: (cfi: string, fraction: number) => void;
   onTocLoad: (toc: TOCItem[]) => void;
   onReady: () => void;
 }
 
-export function EpubViewer({ localPath, initialCfi, viewRef, onRelocate, onTocLoad, onReady }: Props) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const foliate = (el: HTMLElement | null): any => el;
+
+export function EpubViewer({ localPath, initialCfi, readingMode, viewRef, onRelocate, onTocLoad, onReady }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isCreated = useRef(false);
   const onRelocateRef = useRef(onRelocate);
   const onTocLoadRef = useRef(onTocLoad);
   const onReadyRef = useRef(onReady);
+  const readingModeRef = useRef(readingMode);
 
-  // Keep refs up to date without triggering the effect
   onRelocateRef.current = onRelocate;
   onTocLoadRef.current = onTocLoad;
   onReadyRef.current = onReady;
+  readingModeRef.current = readingMode;
+
+  // Dynamically switch reading mode on an already-open view
+  useEffect(() => {
+    const view = foliate(viewRef.current);
+    if (!view?.renderer) return;
+    const flowValue = readingMode === 'scrolled' ? 'scrolled' : 'paginated';
+    view.renderer.setAttribute('flow', flowValue);
+    // Re-navigate to current position so the new layout renders immediately
+    if (view.lastLocation?.cfi) {
+      view.goTo(view.lastLocation.cfi).catch(console.error);
+    } else {
+      view.renderer.next();
+    }
+  }, [readingMode, viewRef]);
 
   useEffect(() => {
     if (isCreated.current) return;
@@ -42,24 +62,29 @@ export function EpubViewer({ localPath, initialCfi, viewRef, onRelocate, onTocLo
       containerRef.current?.appendChild(view);
       viewRef.current = view;
 
+      await foliate(view).open(await makeBook(convertFileSrc(localPath)));
+
+      // Apply reading mode before first navigation (mirrors reader.js pattern)
+      foliate(view).renderer.setAttribute(
+        'flow',
+        readingModeRef.current === 'scrolled' ? 'scrolled' : 'paginated',
+      );
+
       view.addEventListener('relocate', (e: Event) => {
         const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
         onRelocateRef.current(cfi, fraction ?? 0);
       });
 
-      const fileUrl = convertFileSrc(localPath);
-      const book = await makeBook(fileUrl);
-      // @ts-expect-error — foliate-view is a custom element, not typed
-      await view.open(book);
-
-      // @ts-expect-error
-      onTocLoadRef.current(view.book?.toc ?? []);
-      onReadyRef.current();
+      onTocLoadRef.current(foliate(view).book?.toc ?? []);
 
       if (initialCfi) {
-        // @ts-expect-error
-        view.goTo(initialCfi);
+        await foliate(view).goTo(initialCfi);
+      } else {
+        // Official reader.js pattern: call renderer.next() to load first page
+        foliate(view).renderer.next();
       }
+
+      onReadyRef.current();
     };
 
     openBook().catch(console.error);
