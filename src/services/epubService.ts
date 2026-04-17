@@ -27,11 +27,17 @@ export async function importEpub(contentUri: string): Promise<Book> {
 async function extractEpubMetadata(localPath: string): Promise<{ title: string; author: string }> {
   try {
     const { makeBook } = await import('foliate-js/view.js');
-    const book = await makeBook(convertFileSrc(localPath)) as { metadata?: { title?: string; author?: string } };
+    const book = await makeBook(convertFileSrc(localPath)) as { metadata?: { title?: unknown; author?: unknown } };
     const { metadata } = book;
+    const rawAuthor = metadata?.author;
+    const author = typeof rawAuthor === 'string'
+      ? rawAuthor
+      : rawAuthor && typeof rawAuthor === 'object' && 'name' in rawAuthor
+        ? String((rawAuthor as { name: unknown }).name)
+        : 'Unknown Author';
     return {
-      title:  metadata?.title  ?? localPath.split('/').pop()?.replace('.epub', '') ?? 'Unknown',
-      author: metadata?.author ?? 'Unknown Author',
+      title: typeof metadata?.title === 'string' ? metadata.title : localPath.split('/').pop()?.replace('.epub', '') ?? 'Unknown',
+      author,
     };
   } catch {
     return {
