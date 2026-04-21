@@ -1,8 +1,8 @@
 .rn-top-nav {
   display: flex;
   align-items: center;
-  height: 56px;
-  padding: 0 calc(4px + var(--sar)) 0 calc(4px + var(--sal));
+  min-height: 56px;
+  padding: var(--sat) calc(4px + var(--sar)) 0 calc(4px + var(--sal));
   background: #fff;
   border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;

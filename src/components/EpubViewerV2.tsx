@@ -118,6 +118,16 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
     if (isViewCreated.current) return;
     isViewCreated.current = true;
 
+    let currentCfi: string | null = null;
+
+    const handleOrientationChange = () => {
+      const cfi = currentCfi;
+      if (!cfi || !isReady.current) return;
+      setTimeout(() => {
+        fv(viewRef.current)?.goTo(cfi).catch(console.error);
+      }, 300);
+    };
+
     const openBook = async () => {
       console.log('[EpubViewerV2] openBook start', { localPath });
 
@@ -243,6 +253,7 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
       view.addEventListener('relocate', (e: Event) => {
         const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
         console.log('[EpubViewerV2] relocate', { cfi, fraction, readyFired });
+        currentCfi = cfi;
         markReady();
         const r = fv(view).renderer;
         onRelocateRef.current(
@@ -252,6 +263,8 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
           r?.pages ?? 0,
         );
       });
+
+      screen.orientation?.addEventListener('change', handleOrientationChange);
 
       fv(view).renderer.setAttribute('max-column-count', '1');
       fv(view).renderer.setAttribute('flow', readingModeRef.current === 'scrolled' ? 'scrolled' : 'paginated');
@@ -287,6 +300,7 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
     });
 
     return () => {
+      screen.orientation?.removeEventListener('change', handleOrientationChange);
       viewRef.current?.remove();
       viewRef.current = null;
       isViewCreated.current = false;

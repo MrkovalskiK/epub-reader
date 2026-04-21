@@ -6,7 +6,8 @@
   -ms-flex-align: center;
   align-items: center;
   background: #fff;
-  padding: 18px calc(20px + var(--sar)) 14px calc(20px + var(--sal));
+  padding: calc(18px + var(--sat)) calc(20px + var(--sar)) 14px calc(20px + var(--sal));
+  margin-top: calc(-1 * var(--sat));
   margin-left: calc(-1 * var(--sal));
   margin-right: calc(-1 * var(--sar));
   border-bottom: 1px solid rgba(103, 80, 164, 0.1);
