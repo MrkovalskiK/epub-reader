@@ -34,14 +34,23 @@ export function LibraryScreen({ onOpenBook }: Props) {
 	};
 
 	const handleAdd = async () => {
-		const selected = await open({
-			multiple: false,
-			filters: [{ name: "EPUB", extensions: ["epub"] }],
-		});
-		if (!selected) return;
 		setIsImporting(true);
+		let selected: string | null = null;
 		try {
-			const book = await importEpub(selected as string);
+			selected = await open({
+				multiple: false,
+				filters: [{ name: "EPUB", extensions: ["epub"] }],
+			}) as string | null;
+		} catch {
+			setIsImporting(false);
+			return;
+		}
+		if (!selected) {
+			setIsImporting(false);
+			return;
+		}
+		try {
+			const book = await importEpub(selected);
 			await addBook(book);
 		} catch (err) {
 			if (err instanceof DuplicateBookError) {
