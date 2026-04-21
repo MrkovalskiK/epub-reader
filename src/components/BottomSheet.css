@@ -64,5 +64,5 @@
 .bs-content {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(16px + var(--sab));
+  padding: 16px 16px calc(16px + var(--sab));
 }

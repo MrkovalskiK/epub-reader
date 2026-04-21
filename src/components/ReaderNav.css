@@ -1,8 +1,8 @@
 .rn-top-nav {
   display: flex;
   align-items: center;
-  height: 56px;
-  padding: 0 4px;
+  height: calc(56px + var(--sat, 0px));
+  padding: var(--sat, 0px) 4px 0;
   background: #fff;
   border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;
@@ -46,8 +46,8 @@
 .rn-bottom-nav {
   display: flex;
   align-items: center;
-  min-height: 64px;
-  padding: 0 8px;
+  min-height: calc(64px + var(--sab, 0px));
+  padding: 0 8px var(--sab, 0px);
   background: #fff;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
