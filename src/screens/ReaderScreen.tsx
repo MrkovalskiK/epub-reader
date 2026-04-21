@@ -1,11 +1,11 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
-import { Preloader } from 'konsta/react';
-import { EpubViewer } from '~/components/EpubViewer';
-import type { EpubViewerHandle } from '~/components/EpubViewer';
-import { ReaderTopNav, ReaderBottomNav } from '~/components/ReaderNav';
-import { useReaderStore } from '~/store/readerStore';
-import { saveProgress, loadProgress, saveBookSettings, loadBookSettings } from '~/services/storageService';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Book, TOCItem } from '~/types/book';
+import type { EpubViewerHandle } from '~/components/EpubViewerV2';
+import { EpubViewerV2 } from '~/components/EpubViewerV2';
+import { Spinner } from '~/components/Spinner';
+import { ReaderBottomNav, ReaderTopNav } from '~/components/ReaderNav';
+import { useReaderStore } from '~/store/readerStore';
+import { loadBookSettings, loadProgress, saveBookSettings, saveProgress } from '~/services/storageService';
 
 interface Props {
   book: Book;
@@ -62,18 +62,18 @@ export function ReaderScreen({ book, onClose }: Props) {
   }, [book.id, setCfi]);
 
   const handleTocLoad = useCallback((toc: TOCItem[]) => setToc(toc), [setToc]);
-  const handleReady   = useCallback(() => setLoading(false), [setLoading]);
+  const handleReady = useCallback(() => setLoading(false), [setLoading]);
 
   if (initialCfi === null) {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-white">
-        <span className="text-gray-400">Открытие…</span>
+      <div style={{ display: 'flex', height: '100dvh', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[100dvh]">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <ReaderTopNav
         book={book}
         epubRef={epubRef}
@@ -83,8 +83,8 @@ export function ReaderScreen({ book, onClose }: Props) {
         settingsOpen={settingsOpen}
         setSettingsOpen={setSettingsOpenSync}
       />
-      <div className="flex-1 min-h-0 overflow-hidden relative">
-        <EpubViewer
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        <EpubViewerV2
           ref={epubRef}
           localPath={book.localPath}
           initialCfi={initialCfi ?? undefined}
@@ -95,8 +95,8 @@ export function ReaderScreen({ book, onClose }: Props) {
           onReady={handleReady}
         />
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
-            <Preloader />
+          <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+            <Spinner />
           </div>
         )}
       </div>

@@ -28,7 +28,7 @@ export async function generateCoverImageUrl(book: Book): Promise<string | null> 
 }
 
 async function sha256Bytes(bytes: Uint8Array): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', bytes);
+  const buf = await crypto.subtle.digest('SHA-256', bytes as unknown as ArrayBuffer);
   return Array.from(new Uint8Array(buf))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
@@ -99,7 +99,7 @@ export async function importEpub(contentUri: string): Promise<Book> {
   return { ...book, coverImageUrl };
 }
 
-async function makeBookFromPath(localPath: string) {
+export async function makeBookFromPath(localPath: string) {
   const { makeBook } = await import('foliate-js/view.js');
   const bytes = await readFile(localPath);
   const file = new File([bytes], 'book.epub', { type: 'application/epub+zip' });

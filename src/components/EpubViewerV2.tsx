@@ -4,8 +4,27 @@ import type { BookSettings } from '~/types/bookSettings';
 import type { TOCItem } from '~/types/book';
 import type { ReadingMode } from '~/store/readerStore';
 import { Spinner } from '~/components/Spinner';
-import { getStyles, transformStylesheet } from '~/utils/style';
-import { handleTouchEnd, handleTouchMove, handleTouchStart } from '~/utils/iframeEventHandlers';
+import {
+  getStyles,
+  transformStylesheet,
+  applyThemeModeClass,
+  applyScrollModeClass,
+  applyImageStyle,
+  applyTableStyle,
+  keepTextAlignment,
+} from '~/utils/style';
+import {
+  handleKeydown,
+  handleKeyup,
+  handleMousedown,
+  handleMouseup,
+  handleWheel,
+  handleClick,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
+  addLongPressListeners,
+} from '~/utils/iframeEventHandlers';
 
 interface RelocateDetail {
   cfi: string;
@@ -32,7 +51,11 @@ export interface EpubViewerHandle {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fv = (el: HTMLElement | null): any => el;
 
-export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewer(
+type DocWithFlag = Document & { _listenersAdded?: boolean };
+
+const BOOK_KEY = 'reader';
+
+export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubViewerV2(
   { localPath, initialCfi, readingMode, settings, onRelocate, onTocLoad, onReady },
   ref,
 ) {
@@ -80,20 +103,21 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
     r.setStyles?.(getStyles(settings));
   }, [settings]);
 
-  // Swipe detection: iframe posts touch events to window, we handle them here
+  // Swipe detection via iframe postMessage events
   useEffect(() => {
     let touchStart: { x: number; y: number; t: number } | null = null;
     const handler = (msg: MessageEvent) => {
+      if (msg.data?.bookKey !== BOOK_KEY) return;
       if (msg.data?.type === 'iframe-touchstart') {
         const t = msg.data.targetTouches?.[0];
-        if (t) touchStart = { x: t.clientX, y: t.clientY, t: msg.data.timeStamp };
+        if (t) touchStart = { x: t.screenX, y: t.screenY, t: msg.data.timeStamp };
         return;
       }
       if (msg.data?.type === 'iframe-touchend' && touchStart) {
         const t = msg.data.targetTouches?.[0];
         if (!t) { touchStart = null; return; }
-        const dx = t.clientX - touchStart.x;
-        const dy = t.clientY - touchStart.y;
+        const dx = t.screenX - touchStart.x;
+        const dy = t.screenY - touchStart.y;
         const dt = msg.data.timeStamp - touchStart.t;
         const vx = Math.abs(dx / (dt || 1));
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30 && vx > 0.2) {
@@ -119,6 +143,7 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
       const { makeBook } = await import('foliate-js/view.js');
 
       const bytes = await readFile(localPath);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const file = new File([bytes], 'book.epub', { type: 'application/epub+zip' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const book = await makeBook(file as any);
@@ -130,7 +155,7 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
       await fv(view).open(book);
       viewRef.current = view;
 
-      // Post-process EPUB CSS: fix font sizes, vw/vh, hardcoded colors, user-select
+      // CSS transform hook — runs per chapter stylesheet
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (book as any).transformTarget?.addEventListener('data', (e: Event) => {
         const detail = (e as CustomEvent).detail;
@@ -142,10 +167,11 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
         }
       });
 
-      // load fires for each chapter — set up touch handlers and fix empty chapters
+      // load fires for each chapter — apply readest-style utilities and register all events
       view.addEventListener('load', (e: Event) => {
         const { doc } = (e as CustomEvent<{ doc: Document; index: number }>).detail;
 
+        // Fix empty chapters so foliate-js doesn't skip them
         const textLen = doc?.body?.textContent?.trim().length ?? 0;
         const hasMedia = doc?.body?.querySelector('img, svg, video, audio') != null;
         if (!textLen && !hasMedia && doc?.body) {
@@ -155,17 +181,31 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
           doc.body.appendChild(el);
         }
 
-        type DocWithFlag = Document & { _epubTouchAdded?: boolean };
-        if (!(doc as DocWithFlag)._epubTouchAdded) {
-          (doc as DocWithFlag)._epubTouchAdded = true;
-          doc.addEventListener('touchstart', (ev) => handleTouchStart('reader', ev as TouchEvent));
-          doc.addEventListener('touchmove',  (ev) => handleTouchMove('reader', ev as TouchEvent));
-          doc.addEventListener('touchend',   (ev) => handleTouchEnd('reader', ev as TouchEvent));
+        const isDarkMode = settingsRef.current.theme === 'dark';
+        const isScrolled = readingModeRef.current === 'scrolled';
+
+        keepTextAlignment(doc);
+        applyThemeModeClass(doc, isDarkMode);
+        applyScrollModeClass(doc, isScrolled);
+        applyImageStyle(doc);
+        applyTableStyle(doc);
+
+        if (!(doc as DocWithFlag)._listenersAdded) {
+          (doc as DocWithFlag)._listenersAdded = true;
+          doc.addEventListener('keydown', (ev) => handleKeydown(BOOK_KEY, ev as KeyboardEvent));
+          doc.addEventListener('keyup', (ev) => handleKeyup(BOOK_KEY, ev as KeyboardEvent));
+          doc.addEventListener('mousedown', (ev) => handleMousedown(BOOK_KEY, ev as MouseEvent));
+          doc.addEventListener('mouseup', (ev) => handleMouseup(BOOK_KEY, ev as MouseEvent));
+          doc.addEventListener('click', (ev) => handleClick(BOOK_KEY, ev as MouseEvent));
+          doc.addEventListener('wheel', (ev) => handleWheel(BOOK_KEY, ev as WheelEvent));
+          doc.addEventListener('touchstart', (ev) => handleTouchStart(BOOK_KEY, ev as TouchEvent));
+          doc.addEventListener('touchmove', (ev) => handleTouchMove(BOOK_KEY, ev as TouchEvent));
+          doc.addEventListener('touchend', (ev) => handleTouchEnd(BOOK_KEY, ev as TouchEvent));
+          addLongPressListeners(BOOK_KEY, doc);
         }
       });
 
-      // relocate fires on the view element after every navigation — guaranteed after init/goToFraction
-      // First occurrence = book is ready, all subsequent = progress updates
+      // relocate fires after every navigation — first occurrence signals ready
       let readyFired = false;
       view.addEventListener('relocate', (e: Event) => {
         const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
