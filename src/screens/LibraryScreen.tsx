@@ -45,10 +45,10 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			await addBook(book);
 		} catch (err) {
 			if (err instanceof DuplicateBookError) {
-				snackbars.getState().open("This book is already in your library");
+				snackbars.getState().open("Эта книга уже в вашей библиотеке");
 			} else {
 				console.error('[import]', err);
-				snackbars.getState().open(`Import failed: ${err instanceof Error ? err.message : String(err)}`, 5000);
+				snackbars.getState().open(`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`, 5000);
 			}
 		} finally {
 			setIsImporting(false);

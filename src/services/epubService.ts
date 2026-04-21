@@ -47,23 +47,23 @@ export async function importEpub(contentUri: string): Promise<Book> {
     'plugin:native-bridge|copy_uri_to_path',
     { uri: contentUri, dst: tempPath }
   );
-  if (!result.success) throw new Error(result.error ?? 'Failed to copy EPUB');
+  if (!result.success) throw new Error(result.error ?? 'Ошибка копирования EPUB');
 
   const loader = await EpubDocumentLoader.fromPath(tempPath);
 
   if (!loader.isValidZip()) {
     await remove(tempPath);
-    throw new Error('Invalid EPUB: not a ZIP archive');
+    throw new Error('Неверный EPUB: не ZIP-архив');
   }
 
   if (!loader.hasContainerXml()) {
     await remove(tempPath);
-    throw new Error('Invalid EPUB: missing META-INF/container.xml');
+    throw new Error('Неверный EPUB: отсутствует META-INF/container.xml');
   }
 
   if (!(await loader.hasOPF())) {
     await remove(tempPath);
-    throw new Error('Invalid EPUB: missing or unreferenced OPF package document');
+    throw new Error('Неверный EPUB: отсутствует или не упоминается документ пакета OPF');
   }
 
   let doc: FoliateBook;

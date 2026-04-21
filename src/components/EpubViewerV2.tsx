@@ -285,7 +285,7 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '12px', textAlign: 'center' }}>
         <div style={{ fontSize: '32px' }}>⚠️</div>
-        <div style={{ fontWeight: 600, fontSize: '16px' }}>Failed to open book</div>
+        <div style={{ fontWeight: 600, fontSize: '16px' }}>Не удалось открыть книгу</div>
         <div style={{ fontSize: '13px', color: '#888', maxWidth: '320px', wordBreak: 'break-word' }}>{error}</div>
       </div>
     );
