@@ -65,15 +65,26 @@ export class EpubDocumentLoader {
   }
 
   async open(): Promise<FoliateBook> {
+    console.log('[documentLoader] open: importing foliate-js/view.js');
     try {
       const { makeBook } = await import('foliate-js/view.js');
-      return (await makeBook(this.toFile() as unknown as string)) as FoliateBook;
+      console.log('[documentLoader] open: calling makeBook');
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Превышено время ожидания открытия EPUB (30с)')), 30_000)
+      );
+      const result = await Promise.race([
+        makeBook(this.toFile() as unknown as string) as Promise<FoliateBook>,
+        timeout,
+      ]);
+      console.log('[documentLoader] open: makeBook resolved');
+      return result;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
+      console.error('[documentLoader] open failed:', msg);
       if (msg.includes('not a valid zip')) {
-        throw new Error('Corrupted EPUB: invalid ZIP archive');
+        throw new Error('Повреждённый EPUB: неверный ZIP-архив');
       }
-      throw new Error(`Broken EPUB: ${msg}`);
+      throw new Error(`Повреждённый EPUB: ${msg}`);
     }
   }
 }

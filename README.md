@@ -57,13 +57,11 @@ Screens
   └── ReaderScreen    — экран чтения
   ↓
 Components
-  ├── EpubViewer          — рендеринг через foliate-js
+  ├── EpubViewer        — рендеринг через foliate-js
   ├── ReaderNav           — навигация, настройки шрифта/темы
   ├── TableOfContents     — оглавление
   ├── BookCard            — карточка книги в библиотеке
   ├── BookDetailsSheet    — детали книги (описание, жанры, издатель)
-  ├── BookActionSheet     — действия (удалить)
-  ├── ErrorBlock          — отображение ошибок
   └── AppErrorBoundary    — глобальный React error boundary
 ```
 
@@ -171,7 +169,7 @@ view.goTo(savedCfi)   ← восстановление позиции
 | **paginated** | Пагинация (по умолчанию) |
 | **scrolled** | Вертикальный скролл |
 
-Режим сохраняется per-book в `book-settings.json` (поле `scrolled` в `BookSettings`).
+Режим сохраняется глобально в `localStorage` (ключ `readingMode`), применяется ко всем книгам.
 
 ### CFI (Canonical Fragment Identifier)
 
@@ -188,7 +186,7 @@ view.goTo(savedCfi)  // при открытии книги
 
 - Темы: `light`, `dark`, `sepia` — CSS применяется через foliate-js `setStyles()`
 - Настройки per-book: шрифт, размер, межстрочный интервал, отступы
-- Сохраняются в `book-settings.json` при закрытии книги (back navigation)
+- Сохраняются в `book-settings.json` при каждом изменении настройки
 
 ### EPUB2 vs EPUB3
 
@@ -254,7 +252,8 @@ set({ books, initialized: true })
 ### ID книги
 
 ```typescript
-id = SHA-256(contentUri)  // уникален per-file, стабилен при повторном импорте
+id = SHA-256(первые 4096 байт + последние 4096 байт + размер файла)
+// уникален per-file, стабилен при повторном импорте с другого URI
 ```
 
 ### Удаление книги
@@ -293,9 +292,7 @@ id = SHA-256(contentUri)  // уникален per-file, стабилен при 
 
 | Библиотека | Версия | Назначение | Обоснование |
 |---|---|---|---|
-| **foliate-js** | github upstream | Парсинг + рендеринг EPUB | Активный проект; EPUB2/3; CFI; TOC; getCover() |
-| **konsta** | 5 | UI-компоненты | Mobile-first; iOS + Material стиль; Tailwind-based |
-| **tailwindcss** | 4 | Стилизация | Требуется для Konsta; utility-first |
+| **foliate-js** | github:readest/foliate-js | Парсинг + рендеринг EPUB | Форк readest; EPUB2/3; CFI; TOC; getCover() |
 | **zustand** | 5 | Управление состоянием | Минимальный boilerplate; без Provider |
 | **lucide-react** | 1 | Иконки | Tree-shakeable SVG иконки |
 | **dayjs** | 1 | Форматирование дат | 2KB; относительное время ("2 часа назад") |

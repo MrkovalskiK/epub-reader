@@ -12,6 +12,7 @@ html, body, #root {
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
+  background: #f3eff8;
 }
 
 #root {

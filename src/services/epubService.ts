@@ -36,40 +36,53 @@ async function sha256Bytes(bytes: Uint8Array): Promise<string> {
 }
 
 export async function importEpub(contentUri: string): Promise<Book> {
+  console.log('[epubService] importEpub start, uri:', contentUri);
   const dataDir = await appDataDir();
   const booksDir = await join(dataDir, 'books');
   if (!(await exists(booksDir))) {
     await mkdir(booksDir, { recursive: true });
   }
   const tempPath = await join(booksDir, `_import_tmp_${Date.now()}.epub`);
+  console.log('[epubService] tempPath:', tempPath);
 
+  console.log('[epubService] copying uri to path...');
   const result = await invoke<{ success: boolean; error?: string }>(
     'plugin:native-bridge|copy_uri_to_path',
     { uri: contentUri, dst: tempPath }
   );
+  console.log('[epubService] copy result:', result);
   if (!result.success) throw new Error(result.error ?? 'Ошибка копирования EPUB');
 
+  console.log('[epubService] loading file bytes...');
   const loader = await EpubDocumentLoader.fromPath(tempPath);
+  console.log('[epubService] file size:', loader.fileBytes.length, 'bytes');
 
   if (!loader.isValidZip()) {
+    console.warn('[epubService] invalid zip signature');
     await remove(tempPath);
     throw new Error('Неверный EPUB: не ZIP-архив');
   }
 
   if (!loader.hasContainerXml()) {
+    console.warn('[epubService] missing META-INF/container.xml');
     await remove(tempPath);
     throw new Error('Неверный EPUB: отсутствует META-INF/container.xml');
   }
 
+  console.log('[epubService] checking OPF...');
   if (!(await loader.hasOPF())) {
+    console.warn('[epubService] missing OPF document');
     await remove(tempPath);
     throw new Error('Неверный EPUB: отсутствует или не упоминается документ пакета OPF');
   }
 
+  console.log('[epubService] opening epub with foliate...');
   let doc: FoliateBook;
   try {
     doc = await loader.open();
+    console.log('[epubService] foliate open succeeded, metadata:', doc.metadata);
   } catch (e) {
+    console.error('[epubService] foliate open failed:', e);
     await remove(tempPath);
     throw e;
   }

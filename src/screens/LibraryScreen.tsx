@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { open, ask } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { Spinner } from "~/components/Spinner";
 import { ScreenHeader } from "~/components/ScreenHeader";
 import { useLibraryStore } from "~/store/libraryStore";
@@ -35,31 +36,49 @@ export function LibraryScreen({ onOpenBook }: Props) {
 
 	const handleAdd = async () => {
 		setIsImporting(true);
-		let selected: string | null = null;
-		try {
-			selected = await open({
-				multiple: false,
-				filters: [{ name: "EPUB", extensions: ["epub"] }],
-			}) as string | null;
-		} catch {
+		// Safety net: if something hangs indefinitely, reset loader after 60s
+		const safetyTimer = setTimeout(() => {
+			console.error('[import] timed out after 60s — resetting loader');
 			setIsImporting(false);
-			return;
-		}
-		if (!selected) {
-			setIsImporting(false);
-			return;
-		}
+		}, 60_000);
+
 		try {
-			const book = await importEpub(selected);
-			await addBook(book);
-		} catch (err) {
-			if (err instanceof DuplicateBookError) {
-				snackbars.getState().open("Эта книга уже в вашей библиотеке");
-			} else {
-				console.error('[import]', err);
-				snackbars.getState().open(`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`, 5000);
+			let selected: string | null = null;
+			try {
+				console.log('[import] opening file picker');
+				const iid = setInterval(() => invoke("noop"), 200);
+				try {
+					selected = await open({
+						multiple: false,
+						filters: [{ name: "EPUB", extensions: ["epub"] }],
+					}) as string | null;
+				} finally {
+					clearInterval(iid);
+				}
+				console.log('[import] file picker resolved, selected:', selected);
+			} catch (e) {
+				console.error('[import] file picker threw:', e);
+				return;
+			}
+			if (!selected) {
+				console.log('[import] no file selected, aborting');
+				return;
+			}
+			try {
+				console.log('[import] starting importEpub:', selected);
+				const book = await importEpub(selected);
+				console.log('[import] importEpub succeeded, book id:', book.id, 'title:', book.title);
+				await addBook(book);
+			} catch (err) {
+				if (err instanceof DuplicateBookError) {
+					snackbars.getState().open("Эта книга уже в вашей библиотеке");
+				} else {
+					console.error('[import] importEpub failed:', err);
+					snackbars.getState().open(`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`, 5000);
+				}
 			}
 		} finally {
+			clearTimeout(safetyTimer);
 			setIsImporting(false);
 		}
 	};
