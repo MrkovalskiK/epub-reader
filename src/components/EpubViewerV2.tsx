@@ -55,14 +55,18 @@ type DocWithFlag = Document & { _listenersAdded?: boolean };
 
 const BOOK_KEY = 'reader';
 
+const READY_TIMEOUT_MS = 30_000;
+
 export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubViewerV2(
   { localPath, initialCfi, readingMode, settings, onRelocate, onTocLoad, onReady },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const viewRef = useRef<HTMLElement | null>(null);
   const isViewCreated = useRef(false);
+  const isReady = useRef(false);
 
   const onRelocateRef = useRef(onRelocate);
   const onTocLoadRef = useRef(onTocLoad);
@@ -80,14 +84,20 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
   useImperativeHandle(ref, () => ({
     goTo: (href) => fv(viewRef.current)?.goTo(href).catch(console.error),
     prev: () => {
+      if (!isReady.current) return;
       const r = fv(viewRef.current)?.renderer;
       if (!r) return;
-      r.scrolled ? fv(viewRef.current)?.prev(r.size - 40) : fv(viewRef.current)?.prev();
+      try {
+        r.scrolled ? fv(viewRef.current)?.prev(r.size - 40) : fv(viewRef.current)?.prev();
+      } catch { /* snap() can fail if paginator views aren't ready */ }
     },
     next: () => {
+      if (!isReady.current) return;
       const r = fv(viewRef.current)?.renderer;
       if (!r) return;
-      r.scrolled ? fv(viewRef.current)?.next(r.size - 40) : fv(viewRef.current)?.next();
+      try {
+        r.scrolled ? fv(viewRef.current)?.next(r.size - 40) : fv(viewRef.current)?.next();
+      } catch { /* snap() can fail if paginator views aren't ready */ }
     },
   }));
 
@@ -103,54 +113,29 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
     r.setStyles?.(getStyles(settings));
   }, [settings]);
 
-  // Swipe detection via iframe postMessage events
-  useEffect(() => {
-    let touchStart: { x: number; y: number; t: number } | null = null;
-    const handler = (msg: MessageEvent) => {
-      if (msg.data?.bookKey !== BOOK_KEY) return;
-      if (msg.data?.type === 'iframe-touchstart') {
-        const t = msg.data.targetTouches?.[0];
-        if (t) touchStart = { x: t.screenX, y: t.screenY, t: msg.data.timeStamp };
-        return;
-      }
-      if (msg.data?.type === 'iframe-touchend' && touchStart) {
-        const t = msg.data.targetTouches?.[0];
-        if (!t) { touchStart = null; return; }
-        const dx = t.screenX - touchStart.x;
-        const dy = t.screenY - touchStart.y;
-        const dt = msg.data.timeStamp - touchStart.t;
-        const vx = Math.abs(dx / (dt || 1));
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30 && vx > 0.2) {
-          const r = fv(viewRef.current)?.renderer;
-          if (r?.scrolled) {
-            dx > 0 ? fv(viewRef.current)?.prev(r.size - 40) : fv(viewRef.current)?.next(r.size - 40);
-          } else {
-            dx > 0 ? fv(viewRef.current)?.prev() : fv(viewRef.current)?.next();
-          }
-        }
-        touchStart = null;
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
   useEffect(() => {
     if (isViewCreated.current) return;
     isViewCreated.current = true;
 
     const openBook = async () => {
+      console.log('[EpubViewerV2] openBook start', { localPath });
+
+      console.log('[EpubViewerV2] loading file bytes...');
       const loader = await EpubDocumentLoader.fromPath(localPath);
+      console.log('[EpubViewerV2] parsing book...');
       const book = await loader.open();
+      console.log('[EpubViewerV2] book parsed', book);
 
       const view = document.createElement('foliate-view');
       view.style.cssText = 'display:block;width:100%;height:100%;';
       containerRef.current?.appendChild(view);
+      console.log('[EpubViewerV2] foliate-view created, opening...');
 
       await fv(view).open(book);
       viewRef.current = view;
+      console.log('[EpubViewerV2] book opened in view');
 
-      // CSS transform hook — runs per chapter stylesheet
+      // CSS + HTML transform hook — runs per chapter resource
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (book as any).transformTarget?.addEventListener('data', (e: Event) => {
         const detail = (e as CustomEvent).detail;
@@ -159,17 +144,24 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
           detail.data = Promise.resolve(detail.data).then((css: string) =>
             transformStylesheet(css, vw, vh, false),
           );
+        } else if (detail.type === 'text/html' || detail.type === 'application/xhtml+xml') {
+          // Strip javascript: image srcs before browser parses the srcdoc — avoids CSP violations
+          detail.data = Promise.resolve(detail.data).then((html: string) =>
+            html.replace(/(<img\b[^>]*?\bsrc\s*=\s*["'])javascript:[^"']*["']/gi, '$1'),
+          );
         }
       });
 
       // load fires for each chapter — apply readest-style utilities and register all events
       view.addEventListener('load', (e: Event) => {
-        const { doc } = (e as CustomEvent<{ doc: Document; index: number }>).detail;
+        const { doc, index } = (e as CustomEvent<{ doc: Document; index: number }>).detail;
+        console.log('[EpubViewerV2] chapter loaded', { index });
 
         // Fix empty chapters so foliate-js doesn't skip them
         const textLen = doc?.body?.textContent?.trim().length ?? 0;
         const hasMedia = doc?.body?.querySelector('img, svg, video, audio') != null;
         if (!textLen && !hasMedia && doc?.body) {
+          console.log('[EpubViewerV2] empty chapter detected, injecting placeholder', { index });
           const el = doc.createElement('div');
           el.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;';
           el.textContent = '\u00a0';
@@ -178,6 +170,11 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
 
         const isDarkMode = settingsRef.current.theme === 'dark';
         const isScrolled = readingModeRef.current === 'scrolled';
+
+        // Strip javascript: src from images (common lazy-load placeholder pattern in EPUBs)
+        doc.querySelectorAll('img[src^="javascript:"]').forEach((img) => {
+          img.removeAttribute('src');
+        });
 
         keepTextAlignment(doc);
         applyThemeModeClass(doc, isDarkMode);
@@ -200,15 +197,41 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
         }
       });
 
-      // relocate fires after every navigation — first occurrence signals ready
+      const toc = fv(view).book?.toc ?? [];
+      console.log('[EpubViewerV2] TOC loaded', { items: toc.length });
+      onTocLoadRef.current(toc);
+
+      // Timeout guard: if ready never fires, show error instead of infinite spinner
       let readyFired = false;
+      const readyTimeout = setTimeout(() => {
+        if (!readyFired) {
+          console.error('[EpubViewerV2] timeout: ready never fired after', READY_TIMEOUT_MS, 'ms', { localPath });
+          setIsLoading(false);
+          setError(`Book failed to render within ${READY_TIMEOUT_MS / 1000}s. The file may be corrupt or unsupported.`);
+        }
+      }, READY_TIMEOUT_MS);
+
+      const markReady = () => {
+        if (readyFired) return;
+        readyFired = true;
+        clearTimeout(readyTimeout);
+        console.log('[EpubViewerV2] ready');
+        isReady.current = true;
+        setIsLoading(false);
+        onReadyRef.current();
+      };
+
+      // stabilized fires when renderer finishes layout — more reliable than relocate for initial render
+      view.addEventListener('stabilized', () => {
+        console.log('[EpubViewerV2] stabilized');
+        markReady();
+      });
+
+      // relocate fires after every navigation — also use as ready signal and for progress tracking
       view.addEventListener('relocate', (e: Event) => {
         const { cfi, fraction } = (e as CustomEvent<RelocateDetail>).detail;
-        if (!readyFired) {
-          readyFired = true;
-          setIsLoading(false);
-          onReadyRef.current();
-        }
+        console.log('[EpubViewerV2] relocate', { cfi, fraction, readyFired });
+        markReady();
         const r = fv(view).renderer;
         onRelocateRef.current(
           cfi,
@@ -218,8 +241,6 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
         );
       });
 
-      onTocLoadRef.current(fv(view).book?.toc ?? []);
-
       fv(view).renderer.setAttribute('max-column-count', '1');
       fv(view).renderer.setAttribute('flow', readingModeRef.current === 'scrolled' ? 'scrolled' : 'paginated');
       fv(view).renderer.setAttribute('margin-top', '40px');
@@ -227,21 +248,48 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
       fv(view).renderer.setStyles?.(getStyles(settingsRef.current));
 
       if (initialCfiRef.current) {
+        console.log('[EpubViewerV2] restoring position', { cfi: initialCfiRef.current });
         await fv(view).init({ lastLocation: initialCfiRef.current });
+        // fallback: if relocate/stabilized didn't fire, unblock loading after short grace period
+        setTimeout(() => markReady(), 300);
       } else {
-        await fv(view).goToFraction(0);
+        // goToFraction(0) lands on the cover/spine[0] which is often a fixed-layout image
+        // that the paginator silently fails to render — navigate to first TOC item instead
+        const firstHref = toc[0]?.href;
+        console.log('[EpubViewerV2] fresh book, navigating to start', { firstHref });
+        if (firstHref) {
+          await fv(view).goTo(firstHref);
+        } else {
+          await fv(view).goToFraction(0);
+        }
       }
+      console.log('[EpubViewerV2] navigation complete, waiting for stabilized/relocate...');
     };
 
-    openBook().catch(console.error);
+    openBook().catch((err) => {
+      console.error('[EpubViewerV2] openBook failed', err);
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : String(err));
+    });
 
     return () => {
       viewRef.current?.remove();
       viewRef.current = null;
       isViewCreated.current = false;
+      isReady.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localPath]);
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '12px', textAlign: 'center' }}>
+        <div style={{ fontSize: '32px' }}>⚠️</div>
+        <div style={{ fontWeight: 600, fontSize: '16px' }}>Failed to open book</div>
+        <div style={{ fontSize: '13px', color: '#888', maxWidth: '320px', wordBreak: 'break-word' }}>{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

@@ -206,7 +206,7 @@ export const handleClick = (bookKey: string, event: MouseEvent) => {
 };
 
 const handleTouchEv = (bookKey: string, event: TouchEvent, type: string) => {
-  const touchList = type === 'iframe-touchend' ? event.targetTouches : event.touches;
+  const touchList = type === 'iframe-touchend' ? event.changedTouches : event.touches;
   const touches = [];
   for (let i = 0; i < touchList.length; i++) {
     const touch = touchList[i];

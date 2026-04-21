@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PlusIcon } from "lucide-react";
+import { open, ask } from "@tauri-apps/plugin-dialog";
 import { Spinner } from "~/components/Spinner";
 import { ScreenHeader } from "~/components/ScreenHeader";
 import { useLibraryStore } from "~/store/libraryStore";
@@ -25,7 +26,6 @@ export function LibraryScreen({ onOpenBook }: Props) {
 	}, [initialized, init]);
 
 	const handleDelete = async (book: Book) => {
-		const { ask } = await import("@tauri-apps/plugin-dialog");
 		const confirmed = await ask(`Удалить «${book.title}»?`, { title: "Удаление книги", kind: "warning" });
 		if (!confirmed) return;
 		await deleteBookFiles(book);
@@ -34,7 +34,6 @@ export function LibraryScreen({ onOpenBook }: Props) {
 	};
 
 	const handleAdd = async () => {
-		const { open } = await import("@tauri-apps/plugin-dialog");
 		const selected = await open({
 			multiple: false,
 			filters: [{ name: "EPUB", extensions: ["epub"] }],
@@ -48,11 +47,8 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			if (err instanceof DuplicateBookError) {
 				snackbars.getState().open("This book is already in your library");
 			} else {
-				const msg = err instanceof Error ? `${err.message}\n\n${err.stack ?? ''}` : String(err);
 				console.error('[import]', err);
-				const { message: showDialog } = await import("@tauri-apps/plugin-dialog");
-				await showDialog(msg, { title: 'Import Error', kind: 'error' });
-				snackbars.getState().open(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+				snackbars.getState().open(`Import failed: ${err instanceof Error ? err.message : String(err)}`, 5000);
 			}
 		} finally {
 			setIsImporting(false);
@@ -87,7 +83,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 				)}
 			</div>
 
-			{isImporting && <Spinner />}
+			{isImporting && <Spinner label="Импортирование..." background="rgba(243,239,248,0.92)" />}
 
 			<button
 				type="button"

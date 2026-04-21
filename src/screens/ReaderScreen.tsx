@@ -21,6 +21,7 @@ export function ReaderScreen({ book, onClose }: Props) {
   const settingsOpenRef = useRef(false);
   const epubRef = useRef<EpubViewerHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pendingSave = useRef<{ cfi: string; fraction: number } | null>(null);
 
   const setTocOpenSync = useCallback((v: boolean) => { tocOpenRef.current = v; setTocOpen(v); }, []);
   const setSettingsOpenSync = useCallback((v: boolean) => { settingsOpenRef.current = v; setSettingsOpen(v); }, []);
@@ -29,7 +30,11 @@ export function ReaderScreen({ book, onClose }: Props) {
     reset();
     loadProgress(book.id).then(cfi => setInitialCfi(cfi ?? undefined));
     loadBookSettings(book.id).then(setBookSettings);
-    return () => clearTimeout(saveTimer.current);
+    return () => {
+      clearTimeout(saveTimer.current);
+      const p = pendingSave.current;
+      if (p) saveProgress(book.id, p.cfi, p.fraction);
+    };
   }, [book.id, reset, setBookSettings]);
 
   useEffect(() => {
@@ -55,8 +60,10 @@ export function ReaderScreen({ book, onClose }: Props) {
 
   const handleRelocate = useCallback((cfi: string, fraction: number, currentPage: number, totalPages: number) => {
     setCfi(cfi, fraction, currentPage, totalPages);
+    pendingSave.current = { cfi, fraction };
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
+      pendingSave.current = null;
       saveProgress(book.id, cfi, fraction);
     }, 500);
   }, [book.id, setCfi]);
@@ -73,7 +80,7 @@ export function ReaderScreen({ book, onClose }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <ReaderTopNav
         book={book}
         epubRef={epubRef}
