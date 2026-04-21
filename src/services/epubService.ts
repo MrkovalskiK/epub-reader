@@ -61,6 +61,11 @@ export async function importEpub(contentUri: string): Promise<Book> {
     throw new Error('Invalid EPUB: missing META-INF/container.xml');
   }
 
+  if (!(await loader.hasOPF())) {
+    await remove(tempPath);
+    throw new Error('Invalid EPUB: missing or unreferenced OPF package document');
+  }
+
   let doc: FoliateBook;
   try {
     doc = await loader.open();

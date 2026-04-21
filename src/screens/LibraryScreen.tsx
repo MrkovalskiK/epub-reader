@@ -48,6 +48,10 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			if (err instanceof DuplicateBookError) {
 				snackbars.getState().open("This book is already in your library");
 			} else {
+				const msg = err instanceof Error ? `${err.message}\n\n${err.stack ?? ''}` : String(err);
+				console.error('[import]', err);
+				const { message: showDialog } = await import("@tauri-apps/plugin-dialog");
+				await showDialog(msg, { title: 'Import Error', kind: 'error' });
 				snackbars.getState().open(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
 			}
 		} finally {

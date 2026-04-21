@@ -37,6 +37,29 @@ export class EpubDocumentLoader {
     return latin1.includes('META-INF/container.xml');
   }
 
+  async hasOPF(): Promise<boolean> {
+    try {
+      const { configure, ZipReader, BlobReader, TextWriter } =
+        await import('foliate-js/vendor/zip.js');
+      configure({ useWebWorkers: false });
+      const reader = new ZipReader(new BlobReader(this.toFile()));
+      const entries = await reader.getEntries();
+      await reader.close();
+
+      const names = new Set(entries.map((e: { filename: string }) => e.filename));
+      const containerEntry = entries.find((e: { filename: string }) => e.filename === 'META-INF/container.xml');
+      if (!containerEntry) return false;
+
+      const xml: string = await containerEntry.getData(new TextWriter());
+      const match = xml.match(/full-path="([^"]+)"/);
+      if (!match) return false;
+
+      return names.has(match[1]);
+    } catch {
+      return false;
+    }
+  }
+
   toFile(): File {
     return new File([this.fileBytes], this.name, { type: 'application/epub+zip' });
   }
