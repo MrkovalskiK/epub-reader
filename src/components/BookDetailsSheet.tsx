@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useState } from 'react';
 import { BottomSheet } from '~/components/BottomSheet';
 import type { Book } from '~/types/book';
@@ -61,7 +62,14 @@ export function BookDetailsSheet({ book, onClose }: Props) {
           {book.publishDate && (
             <div className="bds-info-row">
               <span className="bds-section-label">Дата</span>
-              <span className="bds-info-value">{book.publishDate}</span>
+              <span className="bds-info-value">
+                {(() => {
+                  const raw = book.publishDate ?? '';
+                  if (/^\d{4}$/.test(raw)) return raw;
+                  const d = dayjs(raw);
+                  return d.isValid() ? d.format('D MMM YYYY') : raw;
+                })()}
+              </span>
             </div>
           )}
         </div>
