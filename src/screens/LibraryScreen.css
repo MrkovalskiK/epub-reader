@@ -12,22 +12,6 @@
   position: relative;
 }
 
-.lib-header {
-  background: #fff;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(103, 80, 164, 0.1);
-  -webkit-box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-}
-
-.lib-header-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1c1b1f;
-  letter-spacing: -0.3px;
-}
 
 .lib-scroll {
   -webkit-overflow-scrolling: touch;
@@ -84,28 +68,6 @@
   text-align: center;
 }
 
-.lib-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-}
 
 .lib-fab {
   position: fixed;
@@ -148,3 +110,5 @@
   opacity: 0.5;
   pointer-events: none;
 }
+
+

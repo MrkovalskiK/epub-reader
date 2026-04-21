@@ -1,7 +1,7 @@
-import { Sheet, Toolbar } from 'konsta/react';
-import { X } from 'lucide-react';
 import { useState } from 'react';
+import { BottomSheet } from '~/components/BottomSheet';
 import type { Book } from '~/types/book';
+import './BookDetailsSheet.css';
 
 interface Props {
   book: Book;
@@ -12,85 +12,60 @@ export function BookDetailsSheet({ book, onClose }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
 
   return (
-    <Sheet opened onBackdropClick={onClose}>
-      <Toolbar top>
-        <div className="left">
-          <span className="font-medium text-[15px] text-[#1c1b1f] px-4">Детали книги</span>
+    <BottomSheet title="Детали книги" onClose={onClose}>
+      <div className="bds-header-row">
+        <div className="bds-cover">
+          {book.coverImageUrl && !imgFailed ? (
+            <img
+              src={book.coverImageUrl}
+              alt={book.title}
+              className="bds-cover-img"
+              onError={() => setImgFailed(true)}
+            />
+          ) : (
+            <span className="bds-cover-fallback">📖</span>
+          )}
         </div>
-        <div className="right">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-[#6750a4] flex items-center justify-center"
-          >
-            <X size={20} />
-          </button>
+        <div className="bds-meta">
+          <p className="bds-title">{book.title}</p>
+          <p className="bds-author">{book.author}</p>
         </div>
-      </Toolbar>
-      <div className="pb-safe px-4 overflow-y-auto max-h-[70vh]">
-        {/* Cover + title + author */}
-        <div className="flex gap-4 py-4">
-          <div className="w-[80px] shrink-0 aspect-[2/3] bg-[#d0bcff]/30 rounded-xl overflow-hidden flex items-center justify-center">
-            {book.coverImageUrl && !imgFailed ? (
-              <img
-                src={book.coverImageUrl}
-                alt={book.title}
-                className="w-full h-full object-cover"
-                onError={() => setImgFailed(true)}
-              />
-            ) : (
-              <span className="text-3xl">📖</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-            <p className="font-semibold text-[15px] text-[#1c1b1f] leading-snug">{book.title}</p>
-            <p className="text-[13px] text-[#49454f]">{book.author}</p>
-          </div>
-        </div>
-
-        {/* Description */}
-        {book.description && (
-          <div className="py-3 border-t border-black/8">
-            <p className="text-[12px] font-medium text-[#49454f] uppercase tracking-wide mb-2">Описание</p>
-            <p className="text-[14px] text-[#1c1b1f] leading-relaxed">{book.description}</p>
-          </div>
-        )}
-
-        {/* Genres */}
-        {book.genres && book.genres.length > 0 && (
-          <div className="py-3 border-t border-black/8">
-            <p className="text-[12px] font-medium text-[#49454f] uppercase tracking-wide mb-2">Жанры</p>
-            <div className="flex flex-wrap gap-2">
-              {book.genres.map((genre) => (
-                <span
-                  key={genre}
-                  className="px-3 py-1 bg-[#d0bcff]/30 text-[#6750a4] text-[12px] rounded-full"
-                >
-                  {genre}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Publisher / date */}
-        {(book.publisher || book.publishDate) && (
-          <div className="py-3 border-t border-black/8 flex flex-col gap-2">
-            {book.publisher && (
-              <div className="flex justify-between items-center">
-                <span className="text-[12px] font-medium text-[#49454f] uppercase tracking-wide">Издатель</span>
-                <span className="text-[13px] text-[#1c1b1f]">{book.publisher}</span>
-              </div>
-            )}
-            {book.publishDate && (
-              <div className="flex justify-between items-center">
-                <span className="text-[12px] font-medium text-[#49454f] uppercase tracking-wide">Дата</span>
-                <span className="text-[13px] text-[#1c1b1f]">{book.publishDate}</span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </Sheet>
+
+      {book.description && (
+        <div className="bds-section">
+          <p className="bds-section-label">Описание</p>
+          <p className="bds-description">{book.description}</p>
+        </div>
+      )}
+
+      {book.genres && book.genres.length > 0 && (
+        <div className="bds-section">
+          <p className="bds-section-label">Жанры</p>
+          <div className="bds-genres">
+            {book.genres.map((genre) => (
+              <span key={genre} className="bds-genre-chip">{genre}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(book.publisher || book.publishDate) && (
+        <div className="bds-section">
+          {book.publisher && (
+            <div className="bds-info-row">
+              <span className="bds-section-label">Издатель</span>
+              <span className="bds-info-value">{book.publisher}</span>
+            </div>
+          )}
+          {book.publishDate && (
+            <div className="bds-info-row">
+              <span className="bds-section-label">Дата</span>
+              <span className="bds-info-value">{book.publishDate}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </BottomSheet>
   );
 }

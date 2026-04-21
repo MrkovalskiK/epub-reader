@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { App as KonstaApp } from 'konsta/react';
 import { AppErrorBoundary } from '~/components/AppErrorBoundary';
+import { Snackbar } from '~/components/Snackbar';
 import { LibraryScreen } from '~/screens/LibraryScreen';
 import { ReaderScreen } from '~/screens/ReaderScreen';
 import type { Book } from '~/types/book';
@@ -18,6 +19,7 @@ export function App() {
           : <LibraryScreen onOpenBook={setOpenBook} />
         }
       </AppErrorBoundary>
+      <Snackbar />
     </KonstaApp>
   );
 }
