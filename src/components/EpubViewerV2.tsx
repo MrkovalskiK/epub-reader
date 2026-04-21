@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import type { BookSettings } from '~/types/bookSettings';
 import { EpubDocumentLoader } from '~/services/documentLoader';
 import type { TOCItem } from '~/types/book';
@@ -262,11 +263,13 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
         } else {
           await fv(view).goToFraction(0);
         }
+        setTimeout(() => markReady(), 300);
       }
       console.log('[EpubViewerV2] navigation complete, waiting for stabilized/relocate...');
     };
 
-    openBook().catch((err) => {
+    const iid = setInterval(() => invoke("noop"), 200);
+    openBook().finally(() => clearInterval(iid)).catch((err) => {
       console.error('[EpubViewerV2] openBook failed', err);
       setIsLoading(false);
       setError(err instanceof Error ? err.message : String(err));
