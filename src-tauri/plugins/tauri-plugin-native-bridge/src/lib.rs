@@ -35,7 +35,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("native-bridge")
         .invoke_handler(tauri::generate_handler![
             commands::copy_uri_to_path,
-            commands::get_safe_area_insets
+            commands::get_safe_area_insets,
+            commands::open_url
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

@@ -80,7 +80,7 @@ export function ReaderScreen({ book, onClose }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', marginLeft: 'calc(-1 * var(--sal))', marginRight: 'calc(-1 * var(--sar))' }}>
       <ReaderTopNav
         book={book}
         epubRef={epubRef}

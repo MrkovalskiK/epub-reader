@@ -183,6 +183,17 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
         applyImageStyle(doc);
         applyTableStyle(doc);
 
+        doc.addEventListener('click', (ev) => {
+          const a = (ev.target as HTMLElement)?.closest('a');
+          if (!a) return;
+          const href = a.getAttribute('href') ?? '';
+          if (/^https?:\/\//i.test(href)) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            invoke('plugin:native-bridge|open_url', { url: href }).catch(console.error);
+          }
+        }, true);
+
         if (!(doc as DocWithFlag)._listenersAdded) {
           (doc as DocWithFlag)._listenersAdded = true;
           doc.addEventListener('keydown', (ev) => handleKeydown(BOOK_KEY, ev as KeyboardEvent));

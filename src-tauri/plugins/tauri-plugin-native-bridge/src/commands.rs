@@ -19,3 +19,11 @@ pub(crate) async fn get_safe_area_insets<R: Runtime>(
 ) -> Result<SafeAreaInsetsResponse> {
     app.native_bridge().get_safe_area_insets()
 }
+
+#[command]
+pub(crate) async fn open_url<R: Runtime>(
+    app: AppHandle<R>,
+    url: String,
+) -> Result<OpenUrlResponse> {
+    app.native_bridge().open_url(OpenUrlRequest { url })
+}

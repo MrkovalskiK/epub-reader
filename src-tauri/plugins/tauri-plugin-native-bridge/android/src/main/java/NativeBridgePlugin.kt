@@ -19,6 +19,11 @@ class CopyURIRequestArgs {
   var dst: String? = null
 }
 
+@InvokeArg
+class OpenUrlArgs {
+  var url: String? = null
+}
+
 @TauriPlugin
 class NativeBridgePlugin(private val activity: android.app.Activity) : Plugin(activity) {
 
@@ -51,6 +56,25 @@ class NativeBridgePlugin(private val activity: android.app.Activity) : Plugin(ac
       ret.put("success", true)
     } catch (e: Exception) {
       Log.e("NativeBridge", "copy_uri_to_path: ${e.message}")
+      ret.put("success", false)
+      ret.put("error", e.message)
+    }
+    invoke.resolve(ret)
+  }
+
+  @Command
+  fun open_url(invoke: Invoke) {
+    val args = invoke.parseArgs(OpenUrlArgs::class.java)
+    val ret = JSObject()
+    try {
+      val url = args.url ?: throw IllegalArgumentException("url required")
+      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      activity.startActivity(intent)
+      ret.put("success", true)
+    } catch (e: Exception) {
+      Log.e("NativeBridge", "open_url: ${e.message}")
       ret.put("success", false)
       ret.put("error", e.message)
     }

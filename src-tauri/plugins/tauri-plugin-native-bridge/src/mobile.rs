@@ -27,4 +27,8 @@ impl<R: Runtime> NativeBridge<R> {
     pub fn get_safe_area_insets(&self) -> crate::Result<SafeAreaInsetsResponse> {
         self.0.run_mobile_plugin("get_safe_area_insets", ()).map_err(Into::into)
     }
+
+    pub fn open_url(&self, payload: OpenUrlRequest) -> crate::Result<OpenUrlResponse> {
+        self.0.run_mobile_plugin("open_url", payload).map_err(Into::into)
+    }
 }

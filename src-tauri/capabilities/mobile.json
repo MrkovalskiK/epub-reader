@@ -27,6 +27,7 @@
     "store:allow-save",
     "log:default",
     "log:allow-log",
-    "native-bridge:allow-copy-uri-to-path"
+    "native-bridge:allow-copy-uri-to-path",
+    "native-bridge:allow-open-url"
   ]
 }
