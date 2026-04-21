@@ -196,7 +196,7 @@ interface BottomNavProps {
 }
 
 export function ReaderBottomNav({ epubRef }: BottomNavProps) {
-  const { fraction, currentPage, totalPages } = useReaderStore();
+  const { fraction } = useReaderStore();
 
   return (
     <div className="flex items-center min-h-16 px-2 bg-white border-t border-gray-200">
@@ -204,7 +204,7 @@ export function ReaderBottomNav({ epubRef }: BottomNavProps) {
         <ChevronLeft size={24} />
       </button>
       <span className="flex-1 text-center text-sm text-[#49454f] font-medium">
-        {totalPages > 0 ? `Page ${currentPage} of ${totalPages}` : `${Math.round(fraction * 100)}%`}
+        {`${Math.round(fraction * 100)}%`}
       </span>
       <button type="button" onClick={() => epubRef.current?.next()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
         <ChevronRight size={24} />
