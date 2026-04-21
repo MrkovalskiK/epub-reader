@@ -1,0 +1,36 @@
+.aeb-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  text-align: center;
+}
+
+.aeb-icon {
+  font-size: 36px;
+}
+
+.aeb-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.aeb-desc {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.aeb-btn {
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}

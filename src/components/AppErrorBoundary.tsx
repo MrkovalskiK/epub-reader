@@ -1,4 +1,5 @@
 import React from 'react';
+import './AppErrorBoundary.css';
 
 interface State {
   hasError: boolean;
@@ -22,16 +23,11 @@ export class AppErrorBoundary extends React.Component<{ children: React.ReactNod
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center">
-          <div className="text-4xl">⚠️</div>
-          <p className="text-lg font-medium">Произошла непредвиденная ошибка</p>
-          <p className="text-sm text-gray-500">{this.state.error?.message}</p>
-          <button
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-            onClick={() => window.location.reload()}
-          >
-            Перезапустить
-          </button>
+        <div className="aeb-root">
+          <div className="aeb-icon">⚠️</div>
+          <p className="aeb-title">Произошла непредвиденная ошибка</p>
+          <p className="aeb-desc">{this.state.error?.message}</p>
+          <button type="button" className="aeb-btn" onClick={() => window.location.reload()}>Перезапустить</button>
         </div>
       );
     }

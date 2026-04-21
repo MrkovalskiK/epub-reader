@@ -1,7 +1,8 @@
-import { Navbar } from 'konsta/react';
+import './ReaderNav.css';
 import { ArrowLeft, ChevronLeft, ChevronRight, Menu, Settings } from 'lucide-react';
 import type { Book, TOCItem } from '~/types/book';
 import { TableOfContents } from '~/components/TableOfContents';
+import { BottomSheet } from '~/components/BottomSheet';
 import { useReaderStore } from '~/store/readerStore';
 import type { ReadingMode } from '~/store/readerStore';
 import type { ReadingTheme } from '~/types/bookSettings';
@@ -30,112 +31,89 @@ const THEMES: { value: ReadingTheme; label: string }[] = [
 ];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-medium uppercase tracking-wider text-[#49454f] mb-3">{children}</p>;
+  return <p className="rn-section-label">{children}</p>;
 }
 
-function SettingsSheet({ onClose }: { onClose: () => void }) {
+function SettingsContent() {
   const { readingMode, setReadingMode, bookSettings, setBookSettings } = useReaderStore();
   const s = bookSettings;
   const update = (patch: Partial<typeof s>) => setBookSettings({ ...s, ...patch });
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="Close" />
-      <div className="relative w-[85vw] max-w-xs h-full bg-[#fffbfe] shadow-2xl flex flex-col">
-        <div className="h-16 flex items-center px-6 flex-shrink-0">
-          <span className="text-lg font-medium text-[#1c1b1f] flex-1">Настройки</span>
-          <button type="button" onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f] text-2xl">×</button>
-        </div>
-        <div className="flex-1 overflow-y-auto py-2 space-y-6">
-
-          {/* Theme */}
-          <div className="px-6">
-            <SectionLabel>Тема</SectionLabel>
-            <div className="flex gap-2">
-              {THEMES.map(({ value, label }) => {
-                const palette = themes[value];
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => update({ theme: value })}
-                    className={`flex-1 py-3 rounded-xl border-2 text-sm font-medium transition-colors ${
-                      s.theme === value ? 'border-[#6750a4]' : 'border-transparent'
-                    }`}
-                    style={{ background: palette.bg, color: palette.fg }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Font */}
-          <div className="px-6">
-            <SectionLabel>Шрифт</SectionLabel>
-            <div className="flex gap-2 mb-4">
-              {(['Serif', 'Sans-serif'] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => update({ defaultFont: f })}
-                  className={`flex-1 py-3 rounded-xl border-2 text-sm font-medium transition-colors ${
-                    s.defaultFont === f ? 'border-[#6750a4] bg-[#6750a4]/8 text-[#6750a4]' : 'border-transparent bg-[#f3edf7] text-[#1c1b1f]'
-                  }`}
-                  style={{ fontFamily: f === 'Serif' ? 'Georgia, serif' : 'Arial, sans-serif' }}
-                >
-                  {f === 'Serif' ? 'С засечками' : 'Без засечек'}
-                </button>
-              ))}
-            </div>
-            <SectionLabel>Размер шрифта</SectionLabel>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => update({ defaultFontSize: Math.max(10, s.defaultFontSize - 1) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
-              <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.defaultFontSize}px</span>
-              <button type="button" onClick={() => update({ defaultFontSize: Math.min(32, s.defaultFontSize + 1) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
-            </div>
-          </div>
-
-          {/* Text */}
-          <div className="px-6">
-            <SectionLabel>Межстрочный интервал</SectionLabel>
-            <div className="flex items-center gap-3 mb-4">
-              <button type="button" onClick={() => update({ lineHeight: Math.max(1, +(s.lineHeight - 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
-              <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.lineHeight.toFixed(1)}</span>
-              <button type="button" onClick={() => update({ lineHeight: Math.min(3, +(s.lineHeight + 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
-            </div>
-            <SectionLabel>Отступ абзаца</SectionLabel>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => update({ paragraphMargin: Math.max(0, +(s.paragraphMargin - 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">−</button>
-              <span className="flex-1 text-center text-sm font-medium text-[#1c1b1f]">{s.paragraphMargin.toFixed(1)}em</span>
-              <button type="button" onClick={() => update({ paragraphMargin: Math.min(2, +(s.paragraphMargin + 0.1).toFixed(1)) })} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#f3edf7] text-[#1c1b1f] text-lg font-bold active:bg-[#6750a4]/8">+</button>
-            </div>
-          </div>
-
-          {/* Reading Mode */}
-          <div className="px-6 pb-4">
-            <SectionLabel>Режим чтения</SectionLabel>
-            {READING_MODES.map(({ value, label, description }) => (
+    <>
+      <div className="rn-settings-section">
+        <SectionLabel>Тема</SectionLabel>
+        <div className="rn-btn-row">
+          {THEMES.map(({ value, label }) => {
+            const palette = themes[value];
+            return (
               <button
                 key={value}
                 type="button"
-                onClick={() => setReadingMode(value)}
-                className={`w-full text-left px-4 py-3 mb-2 rounded-xl border-2 transition-colors ${
-                  readingMode === value
-                    ? 'border-[#6750a4] bg-[#6750a4]/8'
-                    : 'border-transparent bg-[#f3edf7] active:bg-[#6750a4]/8'
-                }`}
+                onClick={() => update({ theme: value })}
+                className={`rn-choice-btn${s.theme === value ? ' rn-choice-btn--active' : ''}`}
+                style={{ background: palette.bg, color: palette.fg }}
               >
-                <span className={`block text-sm font-medium ${readingMode === value ? 'text-[#6750a4]' : 'text-[#1c1b1f]'}`}>{label}</span>
-                <span className="block text-xs text-[#49454f] mt-0.5">{description}</span>
+                {label}
               </button>
-            ))}
-          </div>
-
+            );
+          })}
         </div>
       </div>
-    </div>
+
+      <div className="rn-settings-section">
+        <SectionLabel>Шрифт</SectionLabel>
+        <div className="rn-btn-row-mb">
+          {(['Serif', 'Sans-serif'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => update({ defaultFont: f })}
+              className={`rn-choice-btn ${s.defaultFont === f ? 'rn-choice-btn--font-active' : 'rn-choice-btn--font-inactive'}`}
+              style={{ fontFamily: f === 'Serif' ? 'Georgia, serif' : 'Arial, sans-serif' }}
+            >
+              {f === 'Serif' ? 'С засечками' : 'Без засечек'}
+            </button>
+          ))}
+        </div>
+        <SectionLabel>Размер шрифта</SectionLabel>
+        <div className="rn-stepper">
+          <button type="button" onClick={() => update({ defaultFontSize: Math.max(10, s.defaultFontSize - 1) })} className="rn-stepper-btn">−</button>
+          <span className="rn-stepper-value">{s.defaultFontSize}px</span>
+          <button type="button" onClick={() => update({ defaultFontSize: Math.min(32, s.defaultFontSize + 1) })} className="rn-stepper-btn">+</button>
+        </div>
+      </div>
+
+      <div className="rn-settings-section">
+        <SectionLabel>Межстрочный интервал</SectionLabel>
+        <div className="rn-stepper-mb">
+          <button type="button" onClick={() => update({ lineHeight: Math.max(1, +(s.lineHeight - 0.1).toFixed(1)) })} className="rn-stepper-btn">−</button>
+          <span className="rn-stepper-value">{s.lineHeight.toFixed(1)}</span>
+          <button type="button" onClick={() => update({ lineHeight: Math.min(3, +(s.lineHeight + 0.1).toFixed(1)) })} className="rn-stepper-btn">+</button>
+        </div>
+        <SectionLabel>Отступ абзаца</SectionLabel>
+        <div className="rn-stepper">
+          <button type="button" onClick={() => update({ paragraphMargin: Math.max(0, +(s.paragraphMargin - 0.1).toFixed(1)) })} className="rn-stepper-btn">−</button>
+          <span className="rn-stepper-value">{s.paragraphMargin.toFixed(1)}em</span>
+          <button type="button" onClick={() => update({ paragraphMargin: Math.min(2, +(s.paragraphMargin + 0.1).toFixed(1)) })} className="rn-stepper-btn">+</button>
+        </div>
+      </div>
+
+      <div className="rn-settings-section">
+        <SectionLabel>Режим чтения</SectionLabel>
+        {READING_MODES.map(({ value, label, description }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setReadingMode(value)}
+            className={`rn-mode-btn ${readingMode === value ? 'rn-mode-btn--active' : 'rn-mode-btn--inactive'}`}
+          >
+            <span className={`rn-mode-label ${readingMode === value ? 'rn-mode-label--active' : 'rn-mode-label--inactive'}`}>{label}</span>
+            <span className="rn-mode-desc">{description}</span>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -159,25 +137,20 @@ export function ReaderTopNav({ book, epubRef, onClose, tocOpen, setTocOpen, sett
 
   return (
     <>
-      <Navbar
-        title={book.title}
-        titleClassName="truncate"
-        left={
-          <button type="button" onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8">
-            <ArrowLeft size={20} />
+      <div className="rn-top-nav">
+        <button type="button" onClick={onClose} className="rn-icon-btn">
+          <ArrowLeft size={20} />
+        </button>
+        <span className="rn-top-nav-title">{book.title}</span>
+        <div className="rn-nav-actions">
+          <button type="button" onClick={() => setSettingsOpen(true)} className="rn-icon-btn">
+            <Settings size={20} />
           </button>
-        }
-        right={
-          <div className="flex items-center">
-            <button type="button" onClick={() => setSettingsOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8">
-              <Settings size={20} />
-            </button>
-            <button type="button" onClick={() => setTocOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-black/8">
-              <Menu size={20} />
-            </button>
-          </div>
-        }
-      />
+          <button type="button" onClick={() => setTocOpen(true)} className="rn-icon-btn">
+            <Menu size={20} />
+          </button>
+        </div>
+      </div>
       {tocOpen && (
         <TableOfContents
           toc={toc}
@@ -186,7 +159,11 @@ export function ReaderTopNav({ book, epubRef, onClose, tocOpen, setTocOpen, sett
           onClose={() => setTocOpen(false)}
         />
       )}
-      {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <BottomSheet onClose={() => setSettingsOpen(false)} title="Настройки" maxHeight="85vh">
+          <SettingsContent />
+        </BottomSheet>
+      )}
     </>
   );
 }
@@ -199,14 +176,14 @@ export function ReaderBottomNav({ epubRef }: BottomNavProps) {
   const { fraction } = useReaderStore();
 
   return (
-    <div className="flex items-center min-h-16 px-2 bg-white border-t border-gray-200">
-      <button type="button" onClick={() => epubRef.current?.prev()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
+    <div className="rn-bottom-nav">
+      <button type="button" onClick={() => epubRef.current?.prev()} className="rn-nav-btn">
         <ChevronLeft size={24} />
       </button>
-      <span className="flex-1 text-center text-sm text-[#49454f] font-medium">
+      <span className="rn-progress-label">
         {`${Math.round(fraction * 100)}%`}
       </span>
-      <button type="button" onClick={() => epubRef.current?.next()} className="w-12 h-12 flex items-center justify-center rounded-full active:bg-black/8 text-[#1c1b1f]">
+      <button type="button" onClick={() => epubRef.current?.next()} className="rn-nav-btn">
         <ChevronRight size={24} />
       </button>
     </div>

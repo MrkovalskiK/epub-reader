@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { App as KonstaApp } from 'konsta/react';
 import { AppErrorBoundary } from '~/components/AppErrorBoundary';
 import { Snackbar } from '~/components/Snackbar';
 import { LibraryScreen } from '~/screens/LibraryScreen';
@@ -14,7 +13,7 @@ export function App() {
   const revision = snackbars(s => s.revision);
 
   return (
-    <KonstaApp theme="material">
+    <>
       <AppErrorBoundary>
         {openBook
           ? <ReaderScreen book={openBook} onClose={() => setOpenBook(null)} />
@@ -22,6 +21,6 @@ export function App() {
         }
       </AppErrorBoundary>
       <Snackbar key={revision} />
-    </KonstaApp>
+    </>
   );
 }
