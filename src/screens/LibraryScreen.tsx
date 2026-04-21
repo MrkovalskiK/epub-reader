@@ -47,7 +47,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			if (err instanceof DuplicateBookError) {
 				setToastMessage("This book is already in your library");
 			} else {
-				setToastMessage(`Import failed: ${err}`);
+				setToastMessage(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
 			}
 		} finally {
 			setIsImporting(false);
@@ -96,7 +96,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 
 			<button
 				type="button"
-				className={`lib-fab${isImporting ? " lib-fab--disabled" : ""}`}
+				className="lib-fab"
 				onClick={handleAdd}
 				disabled={isImporting}
 			>

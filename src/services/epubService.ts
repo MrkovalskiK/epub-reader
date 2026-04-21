@@ -53,26 +53,34 @@ export async function importEpub(contentUri: string): Promise<Book> {
   // Validate magic bytes (ZIP/EPUB)
   if (bytes[0] !== 0x50 || bytes[1] !== 0x4B || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
     await remove(tempPath);
-    throw new Error('Invalid EPUB file: missing required structure');
+    throw new Error('Invalid EPUB: not a ZIP archive');
   }
 
-  // Validate META-INF/container.xml presence
-  const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-  if (!text.includes('META-INF/container.xml')) {
+  // Validate META-INF/container.xml presence (latin1 is lossless for binary search)
+  const latin1 = new TextDecoder('latin1').decode(bytes);
+  if (!latin1.includes('META-INF/container.xml')) {
     await remove(tempPath);
-    throw new Error('Invalid EPUB file: missing required structure');
+    throw new Error('Invalid EPUB: missing META-INF/container.xml');
   }
 
-  // Compute content hash from first 4096 + last 4096 bytes + file size
-  const prefix = bytes.slice(0, 4096);
-  const suffix = bytes.slice(Math.max(0, bytes.length - 4096));
+  // Compute content hash: full file if ≤8192 bytes, else first+last 4096 bytes + size
+  const CHUNK = 4096;
   const sizeBytes = new Uint8Array(8);
-  const view = new DataView(sizeBytes.buffer);
-  view.setBigUint64(0, BigInt(bytes.length), false);
-  const hashInput = new Uint8Array(prefix.length + suffix.length + 8);
-  hashInput.set(prefix, 0);
-  hashInput.set(suffix, prefix.length);
-  hashInput.set(sizeBytes, prefix.length + suffix.length);
+  const sizeView = new DataView(sizeBytes.buffer);
+  sizeView.setBigUint64(0, BigInt(bytes.length), false);
+  let hashInput: Uint8Array;
+  if (bytes.length <= CHUNK * 2) {
+    hashInput = new Uint8Array(bytes.length + 8);
+    hashInput.set(bytes, 0);
+    hashInput.set(sizeBytes, bytes.length);
+  } else {
+    const prefix = bytes.slice(0, CHUNK);
+    const suffix = bytes.slice(bytes.length - CHUNK);
+    hashInput = new Uint8Array(CHUNK * 2 + 8);
+    hashInput.set(prefix, 0);
+    hashInput.set(suffix, CHUNK);
+    hashInput.set(sizeBytes, CHUNK * 2);
+  }
   const id = await sha256Bytes(hashInput);
 
   // Check for duplicate

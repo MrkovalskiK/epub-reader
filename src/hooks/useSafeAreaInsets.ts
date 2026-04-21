@@ -23,12 +23,9 @@ async function fetchAndApply() {
 export function useSafeAreaInsets() {
   useEffect(() => {
     fetchAndApply();
-    const handler = () => fetchAndApply();
-    screen.orientation?.addEventListener('change', handler);
-    window.addEventListener('focus', handler);
+    screen.orientation?.addEventListener('change', fetchAndApply);
     return () => {
-      screen.orientation?.removeEventListener('change', handler);
-      window.removeEventListener('focus', handler);
+      screen.orientation?.removeEventListener('change', fetchAndApply);
     };
   }, []);
 }

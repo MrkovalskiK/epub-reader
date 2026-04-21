@@ -144,7 +144,7 @@
   opacity: 0.9;
 }
 
-.lib-fab--disabled {
+.lib-fab:disabled {
   opacity: 0.5;
   pointer-events: none;
 }

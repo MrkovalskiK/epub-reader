@@ -5,6 +5,7 @@ import { LibraryScreen } from '~/screens/LibraryScreen';
 import { ReaderScreen } from '~/screens/ReaderScreen';
 import type { Book } from '~/types/book';
 import { useSafeAreaInsets } from '~/hooks/useSafeAreaInsets';
+
 export function App() {
   useSafeAreaInsets()
   const [openBook, setOpenBook] = useState<Book | null>(null);

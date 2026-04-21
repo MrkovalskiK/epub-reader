@@ -65,13 +65,21 @@ class NativeBridgePlugin(private val activity: android.app.Activity) : Plugin(ac
       if (wi != null) {
         val bars = wi.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
         val d = activity.resources.displayMetrics.density
-        ret.put("top", bars.top / d); ret.put("bottom", bars.bottom / d)
-        ret.put("left", bars.left / d); ret.put("right", bars.right / d)
+        ret.put("top", bars.top / d)
+        ret.put("bottom", bars.bottom / d)
+        ret.put("left", bars.left / d)
+        ret.put("right", bars.right / d)
       } else {
-        ret.put("top", 0.0); ret.put("bottom", 0.0); ret.put("left", 0.0); ret.put("right", 0.0)
+        ret.put("top", 0.0)
+        ret.put("bottom", 0.0)
+        ret.put("left", 0.0)
+        ret.put("right", 0.0)
       }
     } catch (e: Exception) {
-      ret.put("top", 0.0); ret.put("bottom", 0.0); ret.put("left", 0.0); ret.put("right", 0.0)
+      ret.put("top", 0.0)
+      ret.put("bottom", 0.0)
+      ret.put("left", 0.0)
+      ret.put("right", 0.0)
     }
     invoke.resolve(ret)
   }

@@ -26,8 +26,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ books, initialized: true });
   },
   addBook: async (book) => {
-    const exists = get().books.find(b => b.id === book.id);
-    if (exists) return;
+    if (get().books.some(b => b.id === book.id)) return;
     const books = [...get().books, book];
     set({ books });
     await saveLibrary(books);
