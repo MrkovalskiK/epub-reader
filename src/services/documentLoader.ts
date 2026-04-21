@@ -1,0 +1,56 @@
+import { readFile } from '@tauri-apps/plugin-fs';
+
+export type FoliateBook = {
+  metadata?: unknown;
+  toc?: unknown[];
+  sections?: unknown[];
+  transformTarget?: EventTarget;
+  getCover(): Promise<Blob | null>;
+};
+
+export class EpubDocumentLoader {
+  readonly fileBytes: Uint8Array;
+  private name: string;
+
+  constructor(bytes: Uint8Array, name: string) {
+    this.fileBytes = bytes;
+    this.name = name;
+  }
+
+  static async fromPath(localPath: string): Promise<EpubDocumentLoader> {
+    const bytes = await readFile(localPath);
+    const name = localPath.split('/').pop() ?? 'book.epub';
+    return new EpubDocumentLoader(bytes, name);
+  }
+
+  isValidZip(): boolean {
+    return (
+      this.fileBytes[0] === 0x50 &&
+      this.fileBytes[1] === 0x4b &&
+      this.fileBytes[2] === 0x03 &&
+      this.fileBytes[3] === 0x04
+    );
+  }
+
+  hasContainerXml(): boolean {
+    const latin1 = new TextDecoder('latin1').decode(this.fileBytes);
+    return latin1.includes('META-INF/container.xml');
+  }
+
+  toFile(): File {
+    return new File([this.fileBytes], this.name, { type: 'application/epub+zip' });
+  }
+
+  async open(): Promise<FoliateBook> {
+    try {
+      const { makeBook } = await import('foliate-js/view.js');
+      return (await makeBook(this.toFile() as unknown as string)) as FoliateBook;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('not a valid zip')) {
+        throw new Error('Corrupted EPUB: invalid ZIP archive');
+      }
+      throw new Error(`Broken EPUB: ${msg}`);
+    }
+  }
+}

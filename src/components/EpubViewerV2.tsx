@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { readFile } from '@tauri-apps/plugin-fs';
 import type { BookSettings } from '~/types/bookSettings';
+import { EpubDocumentLoader } from '~/services/documentLoader';
 import type { TOCItem } from '~/types/book';
 import type { ReadingMode } from '~/store/readerStore';
 import { Spinner } from '~/components/Spinner';
@@ -140,13 +140,8 @@ export const EpubViewerV2 = forwardRef<EpubViewerHandle, Props>(function EpubVie
     isViewCreated.current = true;
 
     const openBook = async () => {
-      const { makeBook } = await import('foliate-js/view.js');
-
-      const bytes = await readFile(localPath);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const file = new File([bytes], 'book.epub', { type: 'application/epub+zip' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const book = await makeBook(file as any);
+      const loader = await EpubDocumentLoader.fromPath(localPath);
+      const book = await loader.open();
 
       const view = document.createElement('foliate-view');
       view.style.cssText = 'display:block;width:100%;height:100%;';
