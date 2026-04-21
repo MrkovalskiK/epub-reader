@@ -33,4 +33,5 @@ android {
 
 dependencies {
     implementation(project(":tauri-android"))
+    implementation("androidx.core:core-ktx:1.17.0")
 }

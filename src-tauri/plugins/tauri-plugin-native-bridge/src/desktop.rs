@@ -16,4 +16,8 @@ impl<R: Runtime> NativeBridge<R> {
     pub fn copy_uri_to_path(&self, _payload: CopyURIRequest) -> crate::Result<CopyURIResponse> {
         Err(crate::Error::UnsupportedPlatform)
     }
+
+    pub fn get_safe_area_insets(&self) -> crate::Result<SafeAreaInsetsResponse> {
+        Ok(SafeAreaInsetsResponse { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 })
+    }
 }

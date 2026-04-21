@@ -18,7 +18,7 @@ interface Props {
   initialCfi: string | undefined;
   readingMode: ReadingMode;
   settings: BookSettings;
-  onRelocate: (cfi: string, fraction: number) => void;
+  onRelocate: (cfi: string, fraction: number, currentPage: number, totalPages: number) => void;
   onTocLoad: (toc: TOCItem[]) => void;
   onReady: () => void;
 }
@@ -133,7 +133,10 @@ export const EpubViewer = forwardRef<EpubViewerHandle, Props>(function EpubViewe
         const cfiSection = match ? parseInt(match[1], 10) / 2 - 1 : -1;
         if (cfiSection !== spineIndexRef.current) return;
         if (emptySpineIndicesRef.current.has(cfiSection)) return;
-        onRelocateRef.current(cfi, Number.isFinite(fraction) ? fraction : 0);
+        const renderer = foliate(view).renderer;
+        const currentPage: number = renderer?.page ?? 0;
+        const totalPages: number = renderer?.pages ?? 0;
+        onRelocateRef.current(cfi, Number.isFinite(fraction) ? fraction : 0, currentPage, totalPages);
       });
 
       view.addEventListener('index-change', () => {

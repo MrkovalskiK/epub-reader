@@ -1,15 +1,15 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { appDataDir, join } from '@tauri-apps/api/path';
-import { readFile, writeFile, mkdir, exists, remove } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, mkdir, exists, remove, rename } from '@tauri-apps/plugin-fs';
 import type { Book } from '~/types/book';
 import { getCoverFilename } from '~/utils/book';
 import { svg2png } from '~/utils/svg2png';
 
-async function sha256(str: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+export class DuplicateBookError extends Error {
+  constructor() {
+    super('Book already exists in library');
+    this.name = 'DuplicateBookError';
+  }
 }
 
 export async function deleteBookFiles(book: Book): Promise<void> {
@@ -27,20 +27,66 @@ export async function generateCoverImageUrl(book: Book): Promise<string | null> 
   return convertFileSrc(absolutePath);
 }
 
+async function sha256Bytes(bytes: Uint8Array): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 export async function importEpub(contentUri: string): Promise<Book> {
-  const id = await sha256(contentUri);
   const dataDir = await appDataDir();
-  const localPath = await join(dataDir, 'books', `${id}.epub`);
+  const booksDir = await join(dataDir, 'books');
+  if (!(await exists(booksDir))) {
+    await mkdir(booksDir, { recursive: true });
+  }
+  const tempPath = await join(booksDir, `_import_tmp_${Date.now()}.epub`);
 
   const result = await invoke<{ success: boolean; error?: string }>(
     'plugin:native-bridge|copy_uri_to_path',
-    { uri: contentUri, dst: localPath }
+    { uri: contentUri, dst: tempPath }
   );
   if (!result.success) throw new Error(result.error ?? 'Failed to copy EPUB');
 
-  const metadata = await extractEpubMetadata(localPath);
-  const book: Book = { id, localPath, ...metadata, addedAt: Date.now() };
-  await saveCover(book, localPath);
+  const bytes = await readFile(tempPath);
+
+  // Validate magic bytes (ZIP/EPUB)
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4B || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
+    await remove(tempPath);
+    throw new Error('Invalid EPUB file: missing required structure');
+  }
+
+  // Validate META-INF/container.xml presence
+  const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  if (!text.includes('META-INF/container.xml')) {
+    await remove(tempPath);
+    throw new Error('Invalid EPUB file: missing required structure');
+  }
+
+  // Compute content hash from first 4096 + last 4096 bytes + file size
+  const prefix = bytes.slice(0, 4096);
+  const suffix = bytes.slice(Math.max(0, bytes.length - 4096));
+  const sizeBytes = new Uint8Array(8);
+  const view = new DataView(sizeBytes.buffer);
+  view.setBigUint64(0, BigInt(bytes.length), false);
+  const hashInput = new Uint8Array(prefix.length + suffix.length + 8);
+  hashInput.set(prefix, 0);
+  hashInput.set(suffix, prefix.length);
+  hashInput.set(sizeBytes, prefix.length + suffix.length);
+  const id = await sha256Bytes(hashInput);
+
+  // Check for duplicate
+  const finalPath = await join(booksDir, `${id}.epub`);
+  if (await exists(finalPath)) {
+    await remove(tempPath);
+    throw new DuplicateBookError();
+  }
+
+  await rename(tempPath, finalPath);
+
+  const metadata = await extractEpubMetadata(finalPath);
+  const book: Book = { id, localPath: finalPath, ...metadata, addedAt: Date.now() };
+  await saveCover(book, finalPath);
   const coverImageUrl = await generateCoverImageUrl(book);
   return { ...book, coverImageUrl };
 }

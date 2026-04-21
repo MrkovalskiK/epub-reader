@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  foliate-js@0.0.0:
-    hash: 623deac56b03740f7e9c830a4eca11f59e7ef19722e7c1b70490f61e36472716
-    path: patches/foliate-js@0.0.0.patch
-
 importers:
 
   .:
@@ -29,8 +24,8 @@ importers:
         specifier: ^1.11.13
         version: 1.11.20
       foliate-js:
-        specifier: github:johnfactotum/foliate-js
-        version: https://codeload.github.com/johnfactotum/foliate-js/tar.gz/76dcd8f0f7ccabd59199fc5eddbe012d8d463b18(patch_hash=623deac56b03740f7e9c830a4eca11f59e7ef19722e7c1b70490f61e36472716)
+        specifier: github:readest/foliate-js
+        version: https://codeload.github.com/readest/foliate-js/tar.gz/4ced7172bdcac9ef11e809a378ce02a8221ecf70
       konsta:
         specifier: ^5.0.8
         version: 5.0.8
@@ -694,6 +689,9 @@ packages:
   caniuse-lite@1.0.30001788:
     resolution: {integrity: sha512-6q8HFp+lOQtcf7wBK+uEenxymVWkGKkjFpCvw5W25cmMwEDU45p1xQFBQv8JDlMMry7eNxyBaR+qxgmTUZkIRQ==}
 
+  construct-style-sheets-polyfill@3.1.0:
+    resolution: {integrity: sha512-HBLKP0chz8BAY6rBdzda11c3wAZeCZ+kIG4weVC2NM3AXzxx09nhe8t0SQNdloAvg5GLuHwq/0SPOOSPvtCcKw==}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -741,8 +739,8 @@ packages:
       picomatch:
         optional: true
 
-  foliate-js@https://codeload.github.com/johnfactotum/foliate-js/tar.gz/76dcd8f0f7ccabd59199fc5eddbe012d8d463b18:
-    resolution: {tarball: https://codeload.github.com/johnfactotum/foliate-js/tar.gz/76dcd8f0f7ccabd59199fc5eddbe012d8d463b18}
+  foliate-js@https://codeload.github.com/readest/foliate-js/tar.gz/4ced7172bdcac9ef11e809a378ce02a8221ecf70:
+    resolution: {tarball: https://codeload.github.com/readest/foliate-js/tar.gz/4ced7172bdcac9ef11e809a378ce02a8221ecf70}
     version: 0.0.0
 
   fsevents@2.3.3:
@@ -1472,6 +1470,8 @@ snapshots:
 
   caniuse-lite@1.0.30001788: {}
 
+  construct-style-sheets-polyfill@3.1.0: {}
+
   convert-source-map@2.0.0: {}
 
   csstype@3.2.3: {}
@@ -1526,7 +1526,9 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
-  foliate-js@https://codeload.github.com/johnfactotum/foliate-js/tar.gz/76dcd8f0f7ccabd59199fc5eddbe012d8d463b18(patch_hash=623deac56b03740f7e9c830a4eca11f59e7ef19722e7c1b70490f61e36472716): {}
+  foliate-js@https://codeload.github.com/readest/foliate-js/tar.gz/4ced7172bdcac9ef11e809a378ce02a8221ecf70:
+    dependencies:
+      construct-style-sheets-polyfill: 3.1.0
 
   fsevents@2.3.3:
     optional: true

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Page, Navbar, Fab, Preloader } from "konsta/react";
+import { Preloader, Toast } from "konsta/react";
 import { PlusIcon } from "lucide-react";
 import { useLibraryStore } from "~/store/libraryStore";
 import { BookCard } from "~/components/BookCard";
 import { BookDetailsSheet } from "~/components/BookDetailsSheet";
-import { importEpub, deleteBookFiles } from "~/services/epubService";
+import { importEpub, deleteBookFiles, DuplicateBookError } from "~/services/epubService";
 import { deleteBookProgress } from "~/services/storageService";
 import type { Book } from "~/types/book";
+import "./LibraryScreen.css";
 
 interface Props {
 	onOpenBook: (book: Book) => void;
@@ -16,6 +17,7 @@ export function LibraryScreen({ onOpenBook }: Props) {
 	const { books, initialized, init, addBook, removeBook } = useLibraryStore();
 	const [detailsBook, setDetailsBook] = useState<Book | null>(null);
 	const [isImporting, setIsImporting] = useState(false);
+	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!initialized) init();
@@ -42,52 +44,77 @@ export function LibraryScreen({ onOpenBook }: Props) {
 			const book = await importEpub(selected as string);
 			await addBook(book);
 		} catch (err) {
-			alert(
-				`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`,
-			);
+			if (err instanceof DuplicateBookError) {
+				setToastMessage("This book is already in your library");
+			} else {
+				setToastMessage(`Import failed: ${err}`);
+			}
 		} finally {
 			setIsImporting(false);
 		}
 	};
 
 	return (
-		<Page>
-			<Navbar title="Моя библиотека" />
-			{!initialized ? (
-				<div className="flex flex-col items-center justify-center h-64 gap-4">
-					<Preloader />
-					<p className="text-sm text-[#49454f]">Загрузка...</p>
-				</div>
-			) : books.length === 0 ? (
-				<div className="flex flex-col items-center justify-center h-64 text-[#49454f]">
-					<p>Нет книг.</p>
-					<p className="text-sm">Нажмите «+», чтобы импортировать EPUB.</p>
-				</div>
-			) : (
-				<div className="flex flex-col pb-20">
-					{books.map((book) => (
-						<BookCard
-							key={book.id}
-							book={book}
-							onOpen={() => onOpenBook(book)}
-							onDelete={() => handleDelete(book)}
-							onShowDetails={() => setDetailsBook(book)}
-						/>
-					))}
-				</div>
-			)}
+		<div className="lib-root">
+			<div className="lib-header">
+				<span className="lib-header-title">Моя библиотека</span>
+			</div>
+
+			<div className="lib-scroll">
+				{!initialized ? (
+					<div className="lib-state-center">
+						<Preloader />
+						<p className="lib-state-text">Загрузка...</p>
+					</div>
+				) : books.length === 0 ? (
+					<div className="lib-state-center">
+						<p className="lib-state-empty-icon">📚</p>
+						<p className="lib-state-text">Нет книг</p>
+						<p className="lib-state-hint">Нажмите «+», чтобы импортировать EPUB</p>
+					</div>
+				) : (
+					<div className="lib-grid">
+						{books.map((book) => (
+							<BookCard
+								key={book.id}
+								book={book}
+								onOpen={() => onOpenBook(book)}
+								onDelete={() => handleDelete(book)}
+								onShowDetails={() => setDetailsBook(book)}
+							/>
+						))}
+					</div>
+				)}
+			</div>
+
 			{isImporting && (
-				<div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 gap-4">
+				<div className="lib-overlay">
 					<Preloader />
-					<p className="text-sm text-[#49454f]">Импорт книги…</p>
+					<p className="lib-state-text">Импорт книги…</p>
 				</div>
 			)}
-			<Fab
-				className={`fixed bottom-6 right-4 z-10${isImporting ? " pointer-events-none opacity-50" : ""}`}
-				icon={<PlusIcon />}
+
+			<button
+				type="button"
+				className={`lib-fab${isImporting ? " lib-fab--disabled" : ""}`}
 				onClick={handleAdd}
-			/>
+				disabled={isImporting}
+			>
+				<PlusIcon size={24} />
+			</button>
+
 			{detailsBook && <BookDetailsSheet book={detailsBook} onClose={() => setDetailsBook(null)} />}
-		</Page>
+
+			<Toast
+				opened={toastMessage !== null}
+				button={
+					<button type="button" onClick={() => setToastMessage(null)}>
+						OK
+					</button>
+				}
+			>
+				{toastMessage}
+			</Toast>
+		</div>
 	);
 }

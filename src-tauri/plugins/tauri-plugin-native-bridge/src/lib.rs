@@ -33,7 +33,10 @@ impl<R: Runtime, T: Manager<R>> NativeBridgeExt<R> for T {
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("native-bridge")
-        .invoke_handler(tauri::generate_handler![commands::copy_uri_to_path])
+        .invoke_handler(tauri::generate_handler![
+            commands::copy_uri_to_path,
+            commands::get_safe_area_insets
+        ])
         .setup(|app, api| {
             #[cfg(mobile)]
             let bridge = mobile::init(app, api)?;

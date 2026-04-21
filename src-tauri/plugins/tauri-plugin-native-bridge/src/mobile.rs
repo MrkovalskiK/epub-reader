@@ -23,4 +23,8 @@ impl<R: Runtime> NativeBridge<R> {
             .run_mobile_plugin("copy_uri_to_path", payload)
             .map_err(Into::into)
     }
+
+    pub fn get_safe_area_insets(&self) -> crate::Result<SafeAreaInsetsResponse> {
+        self.0.run_mobile_plugin("get_safe_area_insets", ()).map_err(Into::into)
+    }
 }

@@ -53,8 +53,8 @@ export function ReaderScreen({ book, onClose }: Props) {
     saveBookSettings(book.id, bookSettings);
   }, [book.id, bookSettings]);
 
-  const handleRelocate = useCallback((cfi: string, fraction: number) => {
-    setCfi(cfi, fraction);
+  const handleRelocate = useCallback((cfi: string, fraction: number, currentPage: number, totalPages: number) => {
+    setCfi(cfi, fraction, currentPage, totalPages);
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveProgress(book.id, cfi, fraction);
